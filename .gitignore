@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -24,3 +25,6 @@ dist-ssr
 *.sw?
 
 .env
+=======
+Refresh/산출물/
+>>>>>>> 68ed3a7e410951b44402bb979674790e270242d1
