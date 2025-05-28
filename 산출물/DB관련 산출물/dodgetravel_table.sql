@@ -67,11 +67,10 @@ CREATE TABLE danger_detail (
 -- 실시간 위험 수집 테이블
 CREATE TABLE realtime_danger (
     danger_id INT PRIMARY KEY AUTO_INCREMENT,
-    locate_info_id INT NOT NULL,
+    locate_name VARCHAR(100),
     danger_detail_id INT NOT NULL,
     place_location VARCHAR(200),
     occurred_at DATETIME,
-    FOREIGN KEY (locate_info_id) REFERENCES locate_info(info_id),
     FOREIGN KEY (danger_detail_id) REFERENCES danger_detail(detail_id)
 );
 
