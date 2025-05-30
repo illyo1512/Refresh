@@ -67,11 +67,10 @@ CREATE TABLE danger_detail (
 -- 실시간 위험 수집 테이블
 CREATE TABLE realtime_danger (
     danger_id INT PRIMARY KEY AUTO_INCREMENT,
-    locate_info_id INT NOT NULL,
+    locate_name VARCHAR(100),
     danger_detail_id INT NOT NULL,
     place_location VARCHAR(200),
     occurred_at DATETIME,
-    FOREIGN KEY (locate_info_id) REFERENCES locate_info(info_id),
     FOREIGN KEY (danger_detail_id) REFERENCES danger_detail(detail_id)
 );
 
@@ -145,7 +144,9 @@ CREATE TABLE saved_route (
 -- 게시글 카테고리 테이블
 CREATE TABLE board_category (
 	category_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    category_detail VARCHAR(100)
+    category_detail VARCHAR(100),
+    upper_category_id INT,
+    FOREIGN KEY (upper_category_id) REFERENCES board_category(category_id)
 );
 
 -- 경로 게시판 테이블
