@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <!-- User APIs -->
+    <div class="container">
+        <h2>GET /api/users</h2>
+        <button onclick="getUsers()">Fetch Users</button>
+        <textarea id="getUsersResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>POST /api/users</h2>
+        <textarea id="postUserData" placeholder='{"email": "test@example.com", "nickname": "TestUser", "gender": "Male", "role": "USER", "phoneNumber": "010-1234-5678", "password": "password", "userBan": false, "createdAt": "2023-10-01T12:00:00"}'></textarea>
+        <button onclick="createUser()">Create User</button>
+        <textarea id="postUserResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>PUT /api/users/{id}</h2>
+        <input id="putUserId" type="text" placeholder="User ID">
+        <textarea id="putUserData" placeholder='{"email": "updated@example.com", "nickname": "UpdatedUser", "gender": "Female", "role": "ADMIN", "phoneNumber": "010-9876-5432", "password": "newpassword", "userBan": true, "createdAt": "2023-10-01T12:00:00"}'></textarea>
+        <button onclick="updateUser()">Update User</button>
+        <textarea id="putUserResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>DELETE /api/users/{id}</h2>
+        <input id="deleteUserId" type="text" placeholder="User ID">
+        <button onclick="deleteUser()">Delete User</button>
+        <textarea id="deleteUserResult" readonly></textarea>
+    </div>
+
+    <!-- Board Category APIs -->
+    <div class="container">
+        <h2>GET /api/board-categories</h2>
+        <button onclick="getBoardCategories()">Fetch Board Categories</button>
+        <textarea id="getBoardCategoriesResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>POST /api/board-categories</h2>
+        <textarea id="postBoardCategoryData" placeholder='{"categoryDetail": "TestCategory", "upperCategoryId": null}'></textarea>
+        <button onclick="createBoardCategory()">Create Board Category</button>
+        <textarea id="postBoardCategoryResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>PUT /api/board-categories/{id}</h2>
+        <input id="putBoardCategoryId" type="text" placeholder="Category ID">
+        <textarea id="putBoardCategoryData" placeholder='{"categoryDetail": "UpdatedCategory", "upperCategoryId": null}'></textarea>
+        <button onclick="updateBoardCategory()">Update Board Category</button>
+        <textarea id="putBoardCategoryResult" readonly></textarea>
+    </div>
+    <div class="container">
+        <h2>DELETE /api/board-categories/{id}</h2>
+        <input id="deleteBoardCategoryId" type="text" placeholder="Category ID">
+        <button onclick="deleteBoardCategory()">Delete Board Category</button>
+        <textarea id="deleteBoardCategoryResult" readonly></textarea>
+    </div>
+
+    <script>
+        const apiBaseUrl = "http://localhost:9806/api"; // 서버 주소 포함
+
+        // User APIs
+        async function getUsers() {
+            const response = await fetch(`${apiBaseUrl}/users`); // 서버 주소 포함된 요청
+            const result = await response.json();
+            document.getElementById("getUsersResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function createUser() {
+            const data = document.getElementById("postUserData").value;
+            const response = await fetch(`${apiBaseUrl}/users`, { // 서버 주소 포함된 요청
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: data
+            });
+            const result = await response.json();
+            document.getElementById("postUserResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function updateUser() {
+            const userId = document.getElementById("putUserId").value;
+            const data = document.getElementById("putUserData").value;
+            const response = await fetch(`${apiBaseUrl}/users/${userId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: data
+            });
+            const result = await response.json();
+            document.getElementById("putUserResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function deleteUser() {
+            const userId = document.getElementById("deleteUserId").value;
+            const response = await fetch(`${apiBaseUrl}/users/${userId}`, {
+                method: "DELETE"
+            });
+            const result = await response.text();
+            document.getElementById("deleteUserResult").value = result;
+        }
+
+        // Board Category APIs
+        async function getBoardCategories() {
+            const response = await fetch(`${apiBaseUrl}/board-categories`);
+            const result = await response.json();
+            document.getElementById("getBoardCategoriesResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function createBoardCategory() {
+            const data = document.getElementById("postBoardCategoryData").value;
+            const response = await fetch(`${apiBaseUrl}/board-categories`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: data
+            });
+            const result = await response.json();
+            document.getElementById("postBoardCategoryResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function updateBoardCategory() {
+            const categoryId = document.getElementById("putBoardCategoryId").value;
+            const data = document.getElementById("putBoardCategoryData").value;
+            const response = await fetch(`${apiBaseUrl}/board-categories/${categoryId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: data
+            });
+            const result = await response.json();
+            document.getElementById("putBoardCategoryResult").value = JSON.stringify(result, null, 2);
+        }
+
+        async function deleteBoardCategory() {
+            const categoryId = document.getElementById("deleteBoardCategoryId").value;
+            const response = await fetch(`${apiBaseUrl}/board-categories/${categoryId}`, {
+                method: "DELETE"
+            });
+            const result = await response.text();
+            document.getElementById("deleteBoardCategoryResult").value = result;
+        }
+    </script>
+</body>
+</html>
