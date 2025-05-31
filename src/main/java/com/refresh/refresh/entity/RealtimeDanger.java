@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -14,9 +15,8 @@ public class RealtimeDanger {
 
     private String locateName;
 
-    @ManyToOne
-    @JoinColumn(name = "danger_detail_id", nullable = false)
-    private DangerDetail dangerDetail;
+    @Column(nullable = false)
+    private Integer dangerDetailId;
 
     private String placeLocation;
     private LocalDateTime occurredAt;

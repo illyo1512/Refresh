@@ -11,9 +11,8 @@ public class DangerRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer recordId;
 
-    @ManyToOne
-    @JoinColumn(name = "detail_id", nullable = false)
-    private DangerDetail detail;
+    @Column(nullable = false)
+    private Integer detailId;
 
     private String dangerLocation;
     private Integer dangerRadius;

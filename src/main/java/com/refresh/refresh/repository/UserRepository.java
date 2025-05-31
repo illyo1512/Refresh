@@ -1,8 +1,9 @@
 package com.refresh.refresh.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.refresh.refresh.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface UserRepository extends JpaRepository<User, Integer> {
+@Repository
+public interface UserRepository extends JpaRepository<User, Integer> { // 엔티티 User 사용
 }

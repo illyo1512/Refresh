@@ -2,6 +2,8 @@ package com.refresh.refresh.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class RouteBoardDTO {
     private Integer routeBoardId;
@@ -11,5 +13,5 @@ public class RouteBoardDTO {
     private String title;
     private String content;
     private Integer categoryId;
-    private String createdAt;
+    private LocalDateTime createdAt;
 }

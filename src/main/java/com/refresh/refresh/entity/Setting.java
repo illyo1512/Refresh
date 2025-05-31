@@ -5,15 +5,14 @@ import lombok.Data;
 
 @Data
 @Entity
+@IdClass(SettingId.class) // 다중 키를 주요 키로 사용
 @Table(name = "setting")
 public class Setting {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer settingId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Id
+    private Integer userId;
 
     private Boolean nightMod;
     private Boolean colorBlind;

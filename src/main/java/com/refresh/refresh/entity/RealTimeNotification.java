@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,17 +13,14 @@ public class RealTimeNotification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer notificationId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
-    @ManyToOne
-    @JoinColumn(name = "danger_id", nullable = false)
-    private RealtimeDanger danger;
+    @Column(nullable = false)
+    private Integer dangerId;
 
-    @ManyToOne
-    @JoinColumn(name = "detail_id", nullable = false)
-    private DangerDetail detail;
+    @Column(nullable = false)
+    private Integer detailId;
 
     private String content;
     private LocalDateTime sentAt;

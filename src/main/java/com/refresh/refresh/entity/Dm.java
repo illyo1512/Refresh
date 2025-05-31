@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,9 +13,8 @@ public class Dm {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer dmId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
     private String content;
     private String sender;

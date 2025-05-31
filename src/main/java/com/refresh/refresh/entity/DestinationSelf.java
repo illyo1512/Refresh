@@ -5,19 +5,17 @@ import lombok.Data;
 
 @Data
 @Entity
+@IdClass(DestinationSelfId.class) // 다중 키를 주요 키로 사용
 @Table(name = "destination_self")
 public class DestinationSelf {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer destinationId;
 
-    @ManyToOne
-    @JoinColumn(name = "self_route_id", nullable = false)
-    private SelfRoute selfRoute;
+    @Id
+    private Integer selfRouteId;
 
-    @ManyToOne
-    @JoinColumn(name = "info_id", nullable = false)
-    private LocateInfo locateInfo;
+    @Column(nullable = false)
+    private Integer infoId;
 
     private String destinationLocate;
     private Integer destinationOrder;

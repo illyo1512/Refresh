@@ -2,6 +2,8 @@ package com.refresh.refresh.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class ReportDTO {
     private Integer reportId;
@@ -9,5 +11,5 @@ public class ReportDTO {
     private Integer targetId;
     private String reportContent;
     private String reportType;
-    private String reportDate;
+    private LocalDateTime reportDate;
 }

@@ -6,5 +6,5 @@ import lombok.Data;
 public class BoardCategoryDTO {
     private Integer categoryId;
     private String categoryDetail;
-    private Integer upperCategoryId; // 추가된 필드
+    private Integer upperCategoryId;
 }

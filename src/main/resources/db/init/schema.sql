@@ -1,5 +1,5 @@
 -- DROP DATABASE capstone;
-create database dodge_travel;
+CREATE DATABASE IF NOT EXISTS dodge_travel;
 use dodge_travel;
 
 -- 사용자 테이블
@@ -97,6 +97,26 @@ CREATE TABLE danger_record (
     FOREIGN KEY (detail_id) REFERENCES danger_detail(detail_id)
 ); 
 
+-- 자신 경로 테이블
+CREATE TABLE self_route (
+    self_route_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    route_name VARCHAR(200),
+    route_result TEXT,
+    created_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES user(user_id)
+);
+
+-- 즐겨찾기 경로 테이블
+CREATE TABLE saved_route (
+    saved_route_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    route_name VARCHAR(200),
+    route_result TEXT,
+    created_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES user(user_id)
+);
+
 -- 자신 경로 목적지 테이블
 CREATE TABLE destination_self (
     destination_id INT AUTO_INCREMENT,
@@ -119,26 +139,6 @@ CREATE TABLE destination_save (
     PRIMARY KEY (destination_id, saved_route_id),
     FOREIGN KEY (info_id) REFERENCES locate_info(info_id),
     FOREIGN KEY (saved_route_id) REFERENCES saved_route(saved_route_id)
-);
-
--- 자신 경로 테이블
-CREATE TABLE self_route (
-    self_route_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    route_name VARCHAR(200),
-    route_result TEXT,
-    created_at DATETIME,
-    FOREIGN KEY (user_id) REFERENCES user(user_id)
-);
-
--- 즐겨찾기 경로 테이블
-CREATE TABLE saved_route (
-    saved_route_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    route_name VARCHAR(200),
-    route_result TEXT,
-    created_at DATETIME,
-    FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
 
 -- 게시글 카테고리 테이블

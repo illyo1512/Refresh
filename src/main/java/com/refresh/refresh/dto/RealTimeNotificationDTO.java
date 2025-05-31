@@ -2,6 +2,8 @@ package com.refresh.refresh.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class RealTimeNotificationDTO {
     private Integer notificationId;
@@ -9,5 +11,5 @@ public class RealTimeNotificationDTO {
     private Integer dangerId;
     private Integer detailId;
     private String content;
-    private String sentAt;
+    private LocalDateTime sentAt;
 }

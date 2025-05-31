@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,9 +13,8 @@ public class SelfRoute {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer selfRouteId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
     private String routeName;
     private String routeResult;

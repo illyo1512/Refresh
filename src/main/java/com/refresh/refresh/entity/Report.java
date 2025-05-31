@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,13 +13,11 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer reportId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
-    @ManyToOne
-    @JoinColumn(name = "target_id", nullable = false)
-    private RouteBoard target;
+    @Column(nullable = false)
+    private Integer targetId;
 
     private String reportContent;
     private String reportType;

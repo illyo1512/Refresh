@@ -12,4 +12,7 @@ public class BoardCategory {
     private Integer categoryId;
 
     private String categoryDetail;
+
+    @Column(name = "upper_category_id")
+    private Integer upperCategoryId;
 }

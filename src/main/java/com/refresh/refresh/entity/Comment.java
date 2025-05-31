@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,13 +13,11 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer commentId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
-    @ManyToOne
-    @JoinColumn(name = "route_board_id", nullable = false)
-    private RouteBoard routeBoard;
+    @Column(nullable = false)
+    private Integer routeBoardId;
 
     private String content;
     private LocalDateTime createdAt;

@@ -2,6 +2,7 @@ package com.refresh.refresh.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -12,13 +13,11 @@ public class LocateReview {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer reviewId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Integer userId;
 
-    @ManyToOne
-    @JoinColumn(name = "locate_info_id", nullable = false)
-    private LocateInfo locateInfo;
+    @Column(nullable = false)
+    private Integer locateInfoId;
 
     private String reviewDetail;
     private LocalDateTime createdAt;
