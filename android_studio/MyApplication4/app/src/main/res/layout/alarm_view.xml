@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/alarm_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:background="#CCFF0000"
+    android:elevation="10dp"
+    android:padding="12dp"
+    android:layout_gravity="top">
+
+    <LinearLayout
+        android:id="@+id/alarm_container"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent">
+
+        <!-- X 버튼 -->
+        <ImageButton
+            android:id="@+id/btn_close"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="4dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="닫기 버튼" />
+
+        <!-- 텍스트 -->
+        <LinearLayout
+            android:id="@+id/alarm_content"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/alarm_title"
+                android:text="위험지역에 접근했습니다!"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/alarm_short"
+                android:text="범죄유형: 도난\n위험도: 높은\n범위: 200m 이내"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp" />
+
+            <TextView
+                android:id="@+id/alarm_detail"
+                android:text="이 지역은 최근 도난 사건이 자주 발생한 구역입니다. 주의해서 이동하세요."
+                android:textSize="13sp"
+                android:textColor="#FFFFFF"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- 상세 토글 버튼 -->
+        <ImageButton
+            android:id="@+id/btn_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/arrow_down_float"
+            android:contentDescription="상세 정보 토글" />
+    </LinearLayout>
+</FrameLayout>
