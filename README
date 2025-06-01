@@ -1,4 +1,10 @@
-파이선 초기설정으로 가상화생성이 필요합니다.
-  python3 -m venv venv
-  source venv\Scripts\activate         # Windows환경기준
-  pip install -r scripts/requirements.txt
+파이선 가상화 환경 초기설정이 필요합니다.
+프로젝트 폴더내 py.init.bat을 실행하여 주세요.
+
+*몇몇 라이브러리 사용을 위해서 Visual C++ Build Tools 설치가 필요합니다.
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+설치 항목:
+  "C++ build tools" 체크
+  -필수 설치 항목
+    Windows 10 SDK
+    MSVC v143 또는 최신 버전
