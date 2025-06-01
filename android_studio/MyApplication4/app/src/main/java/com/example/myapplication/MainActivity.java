@@ -101,18 +101,7 @@ public class MainActivity extends AppCompatActivity {
         webview.loadUrl(""); // localhost제외 접속주소입력
 
         pushAlarm();
-
-
-
-
-
-
-
-
-
-
-
-
+        
 
     }
 }
