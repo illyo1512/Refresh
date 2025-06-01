@@ -35,5 +35,11 @@ out/
 
 ### VS Code ###
 .vscode/
-**/산출물/
 
+### Python ###
+venv/
+__pycache__/
+*.pyc
+content/
+scripts_py/wms/key.py
+logs/

@@ -9,9 +9,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 @EnableJpaRepositories(basePackages = "com.refresh.refresh.repository")
 @EntityScan(basePackages = "com.refresh.refresh.entity")
 public class RefreshApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(RefreshApplication.class, args);
     }
-
 }
