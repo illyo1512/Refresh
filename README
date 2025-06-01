@@ -1,15 +1,10 @@
-Team Refresh
+파이선 가상화 환경 초기설정이 필요합니다.
+프로젝트 폴더내 py.init.bat을 실행하여 주세요.
 
-공유 드라이브 주소
-https://drive.google.com/drive/folders/11mxdQWWl1SdbtqOM0-ng-q9oT_nsmV26?usp=sharing
-
-노션 주소
-https://local-position-5b2.notion.site/17141922ef9d8036ba38f692a093ad37?pvs=4
-
-피그마
-
-와이어프레임
-https://www.figma.com/design/1sViFgK10iFFnt5165UlQf/UI?m=auto&t=iuazu5dG1jEn1Gey-1
-
-시스템 업무흐름도
-https://www.figma.com/board/vuLw5Qm9UImcTBdzQS0YnM/%EC%8B%9C%EC%8A%A4%ED%85%9C-%EC%97%85%EB%AC%B4%ED%9D%90%EB%A6%84%EB%8F%84?t=KWjrhlyTa6mfRWTp-1
+*몇몇 라이브러리 사용을 위해서 Visual C++ Build Tools 설치가 필요합니다.
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+설치 항목:
+  "C++ build tools" 체크
+  -필수 설치 항목
+    Windows 10 SDK
+    MSVC v143 또는 최신 버전
