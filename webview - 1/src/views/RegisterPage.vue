@@ -7,7 +7,6 @@
 
     <div class="container">
       <!-- 약관 동의 섹션 -->
-
       <div class="terms-box">
         <div class="terms-content">
           약관동의 어쩌고 저쩌고 내용이 여기에 들어갑니다.
@@ -23,35 +22,39 @@
             비동의
           </label>
         </div>
-       
+        <p v-if="showTermsError" class="error-msg">
+          약관에 동의하셔야 가입이 가능합니다.
+        </p>
       </div>
 
       <!-- 아이디 -->
       <div class="input-group">
-        <input v-model="id" placeholder="아이디" />
+        <input v-model="id" placeholder="아이디" maxlength="14" />
         <div>
           <button @click="checkId">중복 확인</button>
         </div>
       </div>
       <p v-if="idChecked" class="check-msg">사용 가능한 아이디입니다.</p>
       <p v-if="idError" class="error-msg">이미 사용 중인 아이디입니다.</p>
+      <p v-if="idLengthError" class="error-msg">아이디는 5~14자 사이여야 합니다.</p>
 
       <!-- 비밀번호 -->
-      <input v-model="password" type="password" placeholder="비밀번호" class="input" />
+      <input v-model="password" type="password" placeholder="비밀번호" class="input" maxlength="14" />
       <p v-if="pwFormatError" class="error-msg">
         8~14자의 영문, 숫자 및 특수문자 조합으로 입력해야 합니다.
       </p>
-      <input v-model="confirmPassword" type="password" placeholder="비밀번호 확인" class="input" />
+      <input v-model="confirmPassword" type="password" placeholder="비밀번호 확인" class="input" maxlength="14" />
       <p v-if="pwMatchError" class="error-msg">비밀번호가 일치하지 않습니다.</p>
 
       <!-- 이메일 -->
       <input v-model="email" type="email" placeholder="이메일" class="input" />
 
       <!-- 사용자명 -->
-      <input v-model="username" type="text" placeholder="사용자명" class="input" />
+      <input v-model="username" type="text" placeholder="사용자명" class="input" maxlength="8" />
 
       <!-- 전화번호 -->
-      <input v-model="phone" type="tel" placeholder="전화번호" class="input" />
+      <input v-model="phone" type="tel" placeholder="전화번호" class="input" maxlength="11" />
+      <p v-if="phoneLengthError" class="error-msg">전화번호는 11자리여야 합니다.</p>
 
       <!-- 성별 -->
       <select v-model="gender" class="input">
@@ -62,9 +65,9 @@
 
       <!-- 생년월일 -->
       <div class="birth-group">
-        <input v-model="year" placeholder="연" />
-        <input v-model="month" placeholder="월" />
-        <input v-model="day" placeholder="일" />
+        <input v-model="year" placeholder="연" maxlength="4" />
+        <input v-model="month" placeholder="월" maxlength="2" />
+        <input v-model="day" placeholder="일" maxlength="2" />
       </div>
 
       <!-- 완료 -->
@@ -82,13 +85,18 @@ const router = useRouter()
 const id = ref('')
 const idChecked = ref(false)
 const idError = ref(false)
+const idLengthError = ref(false)
+
 const password = ref('')
 const confirmPassword = ref('')
 const pwFormatError = ref(false)
 const pwMatchError = ref(false)
+
 const email = ref('')
 const username = ref('')
 const phone = ref('')
+const phoneLengthError = ref(false)
+
 const gender = ref('')
 const year = ref('')
 const month = ref('')
@@ -98,7 +106,10 @@ const termsAgreement = ref('')
 const showTermsError = ref(false)
 
 const handleSubmit = () => {
- 
+   if (termsAgreement.value !== 'agree') {
+    showTermsError.value = true
+    return
+  }
   alert(`🎉 ${username.value}님, 가입을 축하드립니다!`)
   // router.push('/main')
 }
@@ -124,6 +135,14 @@ watch(password, (val) => {
 
 watch([password, confirmPassword], ([pw, conf]) => {
   pwMatchError.value = pw !== conf
+})
+
+watch(id, (val) => {
+  idLengthError.value = val.length > 0 && (val.length < 5 || val.length > 14)
+})
+
+watch(phone, (val) => {
+  phoneLengthError.value = val.length > 0 && val.length !== 11
 })
 
 function goBack() {
@@ -188,7 +207,7 @@ function goBack() {
   gap: 20px;
   font-size: 14px;
 }
-.terms-checks input{
+.terms-checks input {
   width: 2em;
 }
 .input-group {
@@ -196,7 +215,6 @@ function goBack() {
   margin-bottom: 8px;
   align-items: center;
 }
-
 .input-group input {
   margin: 0;
 }
@@ -239,7 +257,6 @@ select {
   justify-content: space-between;
   gap: 8px;
 }
-
 .birth-group input {
   flex: 1;
 }
