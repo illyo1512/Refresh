@@ -5,3 +5,4 @@ model_loader.py 모델불러오는 파일 1회만 실행
 
 라이브러리 버전
 transformers == 4.52.2
+requirements.txt 참고
