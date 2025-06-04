@@ -37,9 +37,21 @@ def contours_to_geojson(contours, bbox, width, height):
             for [[x, y]] in contour
             for lng, lat in [pixel_to_latlng(int(x), int(y), bbox, width, height)]
         ]
-        # 첫 점과 끝 점이 일치하지 않으면 폐곡선으로 닫음
-        if coords[0] != coords[-1]:
-            coords.append(coords[0])
+        
+        if len(coords) < 4:
+            if len(coords) == 3:
+                coords.append(coords[0]) #강제로 4각형으로 만듦
+            elif len(coords) == 2:
+                #임의 보정(직사각형)
+                x1, y1 = coords[0]
+                x2, y2 = coords[1]
+                coords = [(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)]
+            else:
+                continue  # 너무 적은 경우는 생략
+
+        elif coords[0] != coords[-1]:
+          coords.append(coords[0])
+
         polygon = Polygon(coords)  # 중첩된 리스트 형태로 전달
         features.append(geojson.Feature(geometry=mapping(polygon), properties={}))
 

@@ -13,8 +13,9 @@ public class DangerRecord {
 
     @Column(nullable = false)
     private Integer detailId;
-
-    private String dangerLocation;
-    private Integer dangerRadius;
-    private Integer dangerLevel;
+    private String dangerJsonPath;
+    private Double bboxMinLng;
+    private Double bboxMinLat;
+    private Double bboxMaxLng; 
+    private Double bboxMaxLat;
 }

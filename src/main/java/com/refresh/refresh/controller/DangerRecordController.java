@@ -27,9 +27,11 @@ public class DangerRecordController {
                     DangerRecordDTO dangerRecordDTO = new DangerRecordDTO();
                     dangerRecordDTO.setRecordId(dangerRecord.getRecordId());
                     dangerRecordDTO.setDetailId(dangerRecord.getDetailId());
-                    dangerRecordDTO.setDangerLocation(dangerRecord.getDangerLocation());
-                    dangerRecordDTO.setDangerRadius(dangerRecord.getDangerRadius());
-                    dangerRecordDTO.setDangerLevel(dangerRecord.getDangerLevel());
+                    dangerRecordDTO.setDangerJsonPath(dangerRecord.getDangerJsonPath());
+                    dangerRecordDTO.setMinLan(dangerRecord.getBboxMaxLat());
+                    dangerRecordDTO.setMinLat(dangerRecord.getBboxMaxLng());
+                    dangerRecordDTO.setMaxLan(dangerRecord.getBboxMinLat());
+                    dangerRecordDTO.setMaxLat(dangerRecord.getBboxMinLng());
                     return dangerRecordDTO;
                 }).collect(Collectors.toList());
     }
@@ -45,56 +47,11 @@ public class DangerRecordController {
         DangerRecordDTO dangerRecordDTO = new DangerRecordDTO();
         dangerRecordDTO.setRecordId(dangerRecord.getRecordId());
         dangerRecordDTO.setDetailId(dangerRecord.getDetailId());
-        dangerRecordDTO.setDangerLocation(dangerRecord.getDangerLocation());
-        dangerRecordDTO.setDangerRadius(dangerRecord.getDangerRadius());
-        dangerRecordDTO.setDangerLevel(dangerRecord.getDangerLevel());
+        dangerRecordDTO.setDangerJsonPath(dangerRecord.getDangerJsonPath());
+        dangerRecordDTO.setMinLan(dangerRecord.getBboxMaxLat());
+        dangerRecordDTO.setMinLat(dangerRecord.getBboxMaxLng());
+        dangerRecordDTO.setMaxLan(dangerRecord.getBboxMinLat());
+        dangerRecordDTO.setMaxLat(dangerRecord.getBboxMinLng());
         return dangerRecordDTO;
-    }
-
-    /**
-     * 새로운 위험 기록 정보를 생성하는 API
-     * @param dangerRecordDTO 위험 기록 DTO
-     * @return DangerRecordDTO
-     */
-    @PostMapping
-    public DangerRecordDTO createDangerRecord(@RequestBody DangerRecordDTO dangerRecordDTO) {
-        DangerRecord dangerRecord = new DangerRecord();
-        dangerRecord.setDetailId(dangerRecordDTO.getDetailId());
-        dangerRecord.setDangerLocation(dangerRecordDTO.getDangerLocation());
-        dangerRecord.setDangerRadius(dangerRecordDTO.getDangerRadius());
-        dangerRecord.setDangerLevel(dangerRecordDTO.getDangerLevel());
-        DangerRecord savedDangerRecord = dangerRecordService.createDangerRecord(dangerRecord);
-        dangerRecordDTO.setRecordId(savedDangerRecord.getRecordId());
-        return dangerRecordDTO;
-    }
-
-    /**
-     * 기존 위험 기록 정보를 업데이트하는 API
-     * @param id 위험 기록 ID
-     * @param dangerRecordDTO 위험 기록 DTO
-     * @return DangerRecordDTO
-     */
-    @PutMapping("/{id}")
-    public DangerRecordDTO updateDangerRecord(@PathVariable int id, @RequestBody DangerRecordDTO dangerRecordDTO) {
-        DangerRecord dangerRecord = new DangerRecord();
-        dangerRecord.setRecordId(id);
-        dangerRecord.setDetailId(dangerRecordDTO.getDetailId());
-        dangerRecord.setDangerLocation(dangerRecordDTO.getDangerLocation());
-        dangerRecord.setDangerRadius(dangerRecordDTO.getDangerRadius());
-        dangerRecord.setDangerLevel(dangerRecordDTO.getDangerLevel());
-        DangerRecord updatedDangerRecord = dangerRecordService.updateDangerRecord(dangerRecord);
-        dangerRecordDTO.setRecordId(updatedDangerRecord.getRecordId());
-        return dangerRecordDTO;
-    }
-
-    /**
-     * 특정 ID의 위험 기록 정보를 삭제하는 API
-     * @param id 위험 기록 ID
-     * @return 삭제 메시지
-     */
-    @DeleteMapping("/{id}")
-    public String deleteDangerRecord(@PathVariable int id) {
-        dangerRecordService.deleteDangerRecord(id);
-        return "DangerRecord with ID " + id + " has been deleted.";
     }
 }

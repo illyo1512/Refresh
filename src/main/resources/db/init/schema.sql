@@ -60,8 +60,8 @@ CREATE TABLE locate_review (
 CREATE TABLE danger_detail (
     detail_id INT PRIMARY KEY AUTO_INCREMENT,
     danger_type VARCHAR(50),
-    danger_detail VARCHAR(200),
-    danger_Countermeasure VARCHAR(500)
+    danger_detail TEXT,
+    danger_Countermeasure TEXT
 );
 
 -- 실시간 위험 수집 테이블
@@ -91,9 +91,11 @@ CREATE TABLE real_time_notification (
 CREATE TABLE danger_record (
     record_id INT PRIMARY KEY AUTO_INCREMENT,
     detail_id INT NOT NULL,
-    danger_location VARCHAR(200),
-    danger_radius INT,
-    danger_level INT,
+    danger_json_path VARCHAR(255),
+    bbox_min_lng DOUBLE,
+    bbox_min_lat DOUBLE,
+    bbox_max_lng DOUBLE,
+    bbox_max_lat DOUBLE,
     FOREIGN KEY (detail_id) REFERENCES danger_detail(detail_id)
 ); 
 
@@ -200,3 +202,4 @@ CREATE TABLE report_result (
 );
 
 
+                                   

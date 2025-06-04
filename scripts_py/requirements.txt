@@ -9,4 +9,3 @@ pillow==11.2.1
 shapely==2.1.1 --prefer-binary
 geojson==3.1.0
 tqdm==4.66.4
-
