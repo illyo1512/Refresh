@@ -1,6 +1,6 @@
 package com.refresh.refresh.service.route_judge;
 
-import com.refresh.refresh.dto.CoordinateDTO;
+import com.refresh.refresh.dto.Route_InfoDTO;
 import org.locationtech.jts.geom.*;
 import org.springframework.stereotype.Component;
 
@@ -17,24 +17,24 @@ public class RouteIntersectionChecker {
     /**
      * 경로가 하나 이상의 위험구역(Polygon)과 교차하는지 판단
      *
-     * @param routeDTOs   Tmap에서 받은 경로 (위도, 경도 DTO 리스트)
+     * @param routeCoords 경로를 구성하는 좌표 리스트 (RouteDto.Coordinate)
      * @param dangerZones 위험구역 Polygon 리스트
      * @return true = 겹침 있음, false = 안전한 경로
      */
-    public boolean isRouteIntersectingDangerZones(List<CoordinateDTO> routeDTOs, List<Polygon> dangerZones) {
-        if (routeDTOs == null || routeDTOs.size() < 2 || dangerZones == null || dangerZones.isEmpty()) {
+    public boolean isRouteIntersectingDangerZones(List<Route_InfoDTO.RouteCoordinate> routeCoords, List<Polygon> dangerZones) {
+        if (routeCoords == null || routeCoords.size() < 2 || dangerZones == null || dangerZones.isEmpty()) {
             return false; // 경로가 비정상일 경우 안전하다고 간주
         }
 
-        // 1. CoordinateDTO → JTS Coordinate로 변환
-        Coordinate[] jtsCoordinates = routeDTOs.stream()
-                .map(c -> new Coordinate(c.getLng(), c.getLat())) // JTS는 x=lng, y=lat
+        // RouteDto.Coordinate → JTS Coordinate로 변환
+        Coordinate[] jtsCoordinates = routeCoords.stream()
+                .map(c -> new Coordinate(c.getLng(), c.getLat())) // JTS: x=lng, y=lat
                 .toArray(Coordinate[]::new);
 
-        // 2. LineString 객체 생성
+        // LineString 객체 생성
         LineString routeLine = geometryFactory.createLineString(jtsCoordinates);
 
-        // 3. 각 위험구역 Polygon과 intersects 연산
+        // 각 위험구역 Polygon과 intersects 연산
         for (Polygon dangerZone : dangerZones) {
             if (routeLine.intersects(dangerZone)) {
                 return true;

@@ -1,48 +1,64 @@
 package com.refresh.refresh.service.route_judge;
 
-import com.refresh.refresh.dto.CoordinateDTO;
+import com.refresh.refresh.dto.Route_InfoDTO;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
- * CoordinateDTO 리스트를 GeoJSON 형식의 LineString으로 변환하는 유틸리티 클래스
+ * 여러 경로를 GeoJSON FeatureCollection 형식으로 변환하는 유틸리티 클래스
  */
 public class GeoJsonConverter {
 
     /**
-     * CoordinateDTO 리스트를 GeoJSON 형식의 LineString FeatureCollection으로 변환
-     * @param coordinates 경로를 구성하는 좌표 리스트
-     * @return GeoJSON 형태의 Map 객체 (FeatureCollection)
+     * 이름과 함께 경로 데이터를 받아 GeoJSON FeatureCollection 형태로 변환
+     *
+     * @param namedRoutes 이름 → 경로 좌표 리스트 (예: "Original Route" → List of RouteCoordinates)
+     * @return GeoJSON 구조를 표현하는 Map 객체
      */
-    public static Map<String, Object> convertToLineStringFeatureCollection(List<CoordinateDTO> coordinates) {
-        // 최상위 FeatureCollection 객체 생성
+    public static Map<String, Object> convertNamedLineStrings(Map<String, List<Route_InfoDTO.RouteCoordinate>> namedRoutes) {
         Map<String, Object> geoJson = new LinkedHashMap<>();
         geoJson.put("type", "FeatureCollection");
 
-        // Feature 객체 생성
+        List<Map<String, Object>> features = new ArrayList<>();
+
+        for (Map.Entry<String, List<Route_InfoDTO.RouteCoordinate>> entry : namedRoutes.entrySet()) {
+            String name = entry.getKey();
+            List<Route_InfoDTO.RouteCoordinate> coords = entry.getValue();
+
+            // 유효한 좌표만 처리
+            if (coords == null || coords.isEmpty()) continue;
+
+            features.add(createLineFeature(coords, name));
+        }
+
+        geoJson.put("features", features);
+        return geoJson;
+    }
+
+    /**
+     * 주어진 좌표 리스트를 GeoJSON LineString Feature로 변환
+     */
+    private static Map<String, Object> createLineFeature(List<Route_InfoDTO.RouteCoordinate> RouteCoordinates, String name) {
         Map<String, Object> feature = new LinkedHashMap<>();
         feature.put("type", "Feature");
 
-        // Geometry 객체 생성 (LineString)
+        // Feature 속성
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("name", name);
+        feature.put("properties", properties);
+
+        // Geometry 구성
         Map<String, Object> geometry = new LinkedHashMap<>();
         geometry.put("type", "LineString");
 
-        // [ [lng, lat], [lng, lat], ... ] 형식으로 좌표 변환
-        List<List<Double>> coordList = coordinates.stream()
-                .map(coord -> List.of(coord.getLng(), coord.getLat()))
-                .collect(Collectors.toList());
-        geometry.put("coordinates", coordList);
+        List<List<Double>> coordList = new ArrayList<>();
+        for (Route_InfoDTO.RouteCoordinate coord : RouteCoordinates) {
+            coordList.add(List.of(coord.getLng(), coord.getLat()));
+        }
 
-        // geometry, properties 포함하여 feature 구성
+        geometry.put("RouteCoordinates", coordList);
         feature.put("geometry", geometry);
-        feature.put("properties", new LinkedHashMap<>()); // 빈 속성값 포함
 
-        // feature 리스트로 FeatureCollection 구성
-        geoJson.put("features", List.of(feature));
-
-        return geoJson;
+        return feature;
     }
 }
