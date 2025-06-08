@@ -11,6 +11,8 @@ import FindIdPage from '../views/FindIdPage.vue'
 import FoundIdPage from '../views/FoundIdPage.vue'
 import FindPasswordPage from '../views/FindPasswordPage.vue'
 import ChangePasswordPage from '../views/ChangePasswordPage.vue'
+import ReviewListPage from '../views/ReviewListPage.vue'
+import WriteReviewPage from '../views/WriteReviewPage.vue'
 
 const routes = [
   { path: '/', name: 'MainPage', component: MainPage },
@@ -24,7 +26,9 @@ const routes = [
   { path: '/findid', name: 'FindIdPage', component: FindIdPage },
   { path: '/foundid', name: 'FoundIdPage', component: FoundIdPage },
   { path: '/findpassword', name: 'FindPasswordPage', component: FindPasswordPage },
-  { path: '/changepassword', name: 'ChangePasswordPage', component: ChangePasswordPage }
+  { path: '/changepassword', name: 'ChangePasswordPage', component: ChangePasswordPage },
+  { path: '/reviewlist', name: 'ReviewListPage', component: ReviewListPage },
+  { path: '/writereview', name: 'WriteReviewPage', component: WriteReviewPage }
 ]
 
 const router = createRouter({

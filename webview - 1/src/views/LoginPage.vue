@@ -40,15 +40,32 @@
 
 <script setup>
 import { ref } from 'vue'
+import api from '@/jwt'
+
 
 const username = ref('')
 const password = ref('')
 
-const handleLogin = () => {
-  if (username.value && password.value) {
-    alert('로그인 성공! 메인화면으로 이동합니다.')
-  } else {
+const handleLogin = async () => {
+  if (!username.value || !password.value) {
     alert('아이디와 비밀번호를 모두 입력하세요.')
+    return
+  }
+
+  try {
+    const response = await api.post('/auth/login', {
+      username: username.value,
+      password: password.value,
+    })
+
+    const token = response.data.token // 백엔드 응답에 따라 수정 필요
+    localStorage.setItem('token', token)
+
+    alert('로그인 성공!')
+    router.push('/map')
+  } catch (err) {
+    console.error(err)
+    alert('로그인 실패: 아이디 또는 비밀번호를 확인하세요.')
   }
 }
 
