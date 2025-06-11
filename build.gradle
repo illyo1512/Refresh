@@ -37,13 +37,14 @@ dependencies {
     // JSON / GeoJSON
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'de.grundid.opendatalab:geojson-jackson:1.14'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
 
     // 공간정보 처리
     implementation 'org.locationtech.jts:jts-core:1.18.2'
     implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
 
     // GraphHopper
-    implementation 'com.graphhopper:graphhopper-core:10.2'
+    implementation 'com.graphhopper:graphhopper-core:8.0'
 
     // DB 드라이버
     runtimeOnly 'com.mysql:mysql-connector-j'

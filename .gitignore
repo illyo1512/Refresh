@@ -40,6 +40,9 @@ out/
 venv/
 __pycache__/
 *.pyc
-content/
 scripts_py/wms/key.py
+
+### Resoures ###
+content/
+data/
 logs/
