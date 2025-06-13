@@ -1,46 +1,55 @@
 <template>
   <div class="base">
     <div class="top-bar">
-    <button @click="goBack" class="back-btn">←</button>
-    <h2 class="title">아이디찾기</h2>
-  </div>
-  <div class="container">
-    <input
-      v-model="email"
-      placeholder="이메일 입력"
-      class="input"
-    />
-    <p v-if="emailError" class="error-msg">이메일이 일치하지 않습니다.</p>
-    <button @click="findId" class="btn">아이디 찾기</button>
-  </div>
+      <button @click="goBack" class="back-btn">←</button>
+      <h2 class="title">아이디찾기</h2>
+    </div>
+    <div class="container">
+      <input
+        v-model="email"
+        placeholder="이메일 입력"
+        class="input"
+      />
+      <p v-if="emailError" class="error-msg">이메일이 일치하지 않습니다.</p>
+      <button @click="findId" class="btn">아이디 찾기</button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/jwt' // axios 인스턴스
 
 const router = useRouter()
 const email = ref('')
 const emailError = ref(false)
 
-// 예시 이메일-아이디 매핑 데이터 (실제 구현 시 API 연동)
-const userDB = {
-  'abc@example.com': 'abcd1234',
-  'hello@world.com': 'hello777'
-}
+const findId = async () => {
+  emailError.value = false
 
-const findId = () => {
-  if (userDB[email.value]) {
-    // 라우터 이동하면서 아이디를 props로 전달
-    router.push('/foundid', {
-      query: { id: userDB[email.value] }
+  try {
+    const res = await api.post('/auth/find-id', {
+      email: email.value
     })
-  } else {
+
+    const foundId = res.data.id
+
+    if (foundId) {
+      router.push({
+        path: '/foundid',
+        query: { id: foundId }
+      })
+    } else {
+      emailError.value = true
+    }
+  } catch (err) {
+    console.error(err)
     emailError.value = true
   }
 }
-function goBack() {
+
+const goBack = () => {
   router.back()
 }
 </script>

@@ -21,25 +21,37 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/jwt' // axios 인스턴스
 
 const password = ref('')
 const showWarning = ref(false)
 const router = useRouter()
 
 function validatePassword(pw) {
-  const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,14}$/
+  const regex =
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,14}$/
   return regex.test(pw)
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!validatePassword(password.value)) {
     showWarning.value = true
     return
   }
 
   showWarning.value = false
-  alert('비밀번호가 변경되었습니다.')
-  router.push('/login') // 메인 화면으로 이동 (경로는 프로젝트에 맞게 수정)
+
+  try {
+    await api.post('/auth/reset-password', {
+      password: password.value,
+    })
+
+    alert('비밀번호가 성공적으로 변경되었습니다.')
+    router.push('/login')
+  } catch (error) {
+    console.error(error)
+    alert('비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
+  }
 }
 </script>
 
