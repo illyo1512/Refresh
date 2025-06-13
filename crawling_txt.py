@@ -3,7 +3,9 @@ from bs4 import BeautifulSoup
 import os
 
 # 코드요약 url만 한번 쭉 받아오기 -> 안의 본문 내용 받아오기  제목 url 본문 따로 저장 txt파일로 되게해둔거 리스트로 수정필요
-
+headers = {
+    'User-Agent': 'Mozilla/5.0'
+}
 
 # ✅ 마지막 크롤링한 최신 기사 URL 로딩
 LAST_URL_FILE = "/content/last_crawled_url.txt"
