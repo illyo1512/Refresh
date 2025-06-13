@@ -13,6 +13,7 @@ import FindPasswordPage from '../views/FindPasswordPage.vue'
 import ChangePasswordPage from '../views/ChangePasswordPage.vue'
 import ReviewListPage from '../views/ReviewListPage.vue'
 import WriteReviewPage from '../views/WriteReviewPage.vue'
+import ColourPage from '../views/ColourPage.vue'
 
 const routes = [
   { path: '/', name: 'MainPage', component: MainPage },
@@ -28,7 +29,8 @@ const routes = [
   { path: '/findpassword', name: 'FindPasswordPage', component: FindPasswordPage },
   { path: '/changepassword', name: 'ChangePasswordPage', component: ChangePasswordPage },
   { path: '/reviewlist', name: 'ReviewListPage', component: ReviewListPage },
-  { path: '/writereview', name: 'WriteReviewPage', component: WriteReviewPage }
+  { path: '/writereview', name: 'WriteReviewPage', component: WriteReviewPage },
+  { path: '/colour', name: 'ColourPage', component: ColourPage }
 ]
 
 const router = createRouter({
