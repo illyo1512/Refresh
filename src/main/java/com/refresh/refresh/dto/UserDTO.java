@@ -14,6 +14,7 @@ public class UserDTO {
     private String phoneNumber;
     private String userImage;
     private String password;
+    private String id;
     private Boolean userBan;
     private LocalDateTime createdAt;
 }

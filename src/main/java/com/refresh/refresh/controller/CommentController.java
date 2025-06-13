@@ -1,90 +1,57 @@
 package com.refresh.refresh.controller;
 
-import com.refresh.refresh.dto.CommentDTO;
 import com.refresh.refresh.entity.Comment;
 import com.refresh.refresh.service.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/comments")
 public class CommentController {
-
+    
     @Autowired
     private CommentService commentService;
 
     /**
-     * 모든 댓글 정보를 가져오는 API
-     * @return List<CommentDTO>
-     */
-    @GetMapping
-    public List<CommentDTO> getAllComments() {
-        return commentService.getAllComments().stream()
-                .map(comment -> {
-                    CommentDTO commentDTO = new CommentDTO();
-                    commentDTO.setCommentId(comment.getCommentId());
-                    commentDTO.setUserId(comment.getUserId());
-                    commentDTO.setRouteBoardId(comment.getRouteBoardId());
-                    commentDTO.setContent(comment.getContent());
-                    commentDTO.setCreatedAt(comment.getCreatedAt());
-                    return commentDTO;
-                }).collect(Collectors.toList());
-    }
-
-    /**
      * 특정 ID의 댓글 정보를 가져오는 API
      * @param id 댓글 ID
-     * @return CommentDTO
+     * @return Comment
      */
     @GetMapping("/{id}")
-    public CommentDTO getCommentById(@PathVariable int id) {
-        Comment comment = commentService.getCommentById(id);
-        CommentDTO commentDTO = new CommentDTO();
-        commentDTO.setCommentId(comment.getCommentId());
-        commentDTO.setUserId(comment.getUserId());
-        commentDTO.setRouteBoardId(comment.getRouteBoardId());
-        commentDTO.setContent(comment.getContent());
-        commentDTO.setCreatedAt(comment.getCreatedAt());
-        return commentDTO;
+    public Comment getCommentById(@PathVariable int id) {
+        return commentService.getCommentById(id);
     }
 
     /**
      * 새로운 댓글 정보를 생성하는 API
-     * @param commentDTO 댓글 DTO
-     * @return CommentDTO
+     * @param comment 댓글
+     * @return Comment
      */
     @PostMapping
-    public CommentDTO createComment(@RequestBody CommentDTO commentDTO) {
-        Comment comment = new Comment();
-        comment.setUserId(commentDTO.getUserId());
-        comment.setRouteBoardId(commentDTO.getRouteBoardId());
-        comment.setContent(commentDTO.getContent());
-        comment.setCreatedAt(commentDTO.getCreatedAt());
-        Comment savedComment = commentService.createComment(comment);
-        commentDTO.setCommentId(savedComment.getCommentId());
-        return commentDTO;
+    public ResponseEntity<Comment> createComment(@RequestBody Comment comment) {
+        Comment createdComment = commentService.createComment(comment);
+        return ResponseEntity.ok(createdComment);
     }
 
     /**
      * 기존 댓글 정보를 업데이트하는 API
      * @param id 댓글 ID
-     * @param commentDTO 댓글 DTO
-     * @return CommentDTO
+     * @param content 댓글 내용
+     * @return Comment
      */
     @PutMapping("/{id}")
-    public CommentDTO updateComment(@PathVariable int id, @RequestBody CommentDTO commentDTO) {
-        Comment comment = new Comment();
-        comment.setCommentId(id);
-        comment.setUserId(commentDTO.getUserId());
-        comment.setRouteBoardId(commentDTO.getRouteBoardId());
-        comment.setContent(commentDTO.getContent());
-        comment.setCreatedAt(commentDTO.getCreatedAt());
-        Comment updatedComment = commentService.updateComment(comment);
-        commentDTO.setCommentId(updatedComment.getCommentId());
-        return commentDTO;
+    public ResponseEntity<Comment> updateComment(
+            @PathVariable Integer id,
+            @RequestBody String content) {
+        Comment updatedComment = commentService.updateComment(id, content);
+        return ResponseEntity.ok(updatedComment);
     }
 
     /**
@@ -93,8 +60,47 @@ public class CommentController {
      * @return 삭제 메시지
      */
     @DeleteMapping("/{id}")
-    public String deleteComment(@PathVariable int id) {
+    public ResponseEntity<Void> deleteComment(@PathVariable Integer id) {
         commentService.deleteComment(id);
-        return "Comment with ID " + id + " has been deleted.";
+        return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/board/{routeBoardId}")
+    public ResponseEntity<List<Comment>> getCommentsByPostId(@PathVariable Integer routeBoardId) {
+        List<Comment> comments = commentService.getCommentsByPostId(routeBoardId);
+        return ResponseEntity.ok(comments);
+    }
+    
+    @GetMapping("/board/{routeBoardId}/paged")
+    public ResponseEntity<Page<Comment>> getCommentsByPostIdPaged(
+            @PathVariable Integer routeBoardId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Comment> comments = commentService.getCommentsByPostId(routeBoardId, pageable);
+        return ResponseEntity.ok(comments);
+    }
+    
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<Comment>> getCommentsByUserId(
+            @PathVariable Integer userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Comment> comments = commentService.getCommentsByUserId(userId, pageable);
+        return ResponseEntity.ok(comments);
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<Page<Comment>> searchComments(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Comment> comments = commentService.searchComments(keyword, pageable);
+        return ResponseEntity.ok(comments);
     }
 }

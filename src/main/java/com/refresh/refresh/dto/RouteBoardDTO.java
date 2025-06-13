@@ -14,4 +14,6 @@ public class RouteBoardDTO {
     private String content;
     private Integer categoryId;
     private LocalDateTime createdAt;
+    private Integer viewCount;
+    private Integer likeCount;
 }

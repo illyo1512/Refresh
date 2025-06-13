@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphHopper 테스트</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .result-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        select, input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            width: 300px;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        /* 지도 스타일 */
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .route-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+        }
+        .coord-input {
+            width: 100px !important;
+        }
+        .route-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ GraphHopper 테스트 페이지</h1>
+    
+    <!-- 1. GraphHopper 상태 확인 -->
+    <div class="container test-section">
+        <h2>1. GraphHopper 상태 확인</h2>
+        <button onclick="checkStatus()">상태 확인</button>
+        <div id="statusResult" class="result-box" style="display: none;"></div>
+    </div>
+    
+    <!-- 2. Profile 목록 조회 -->
+    <div class="container test-section">
+        <h2>2. 사용 가능한 Profile 목록</h2>
+        <button onclick="getProfiles()">Profile 목록 조회</button>
+        <div id="profilesResult" class="result-box" style="display: none;"></div>
+    </div>
+    
+    <!-- 3. 단일 Profile 라우팅 테스트 -->
+    <div class="container test-section">
+        <h2>3. 라우팅 테스트 (서울역 → 명동역)</h2>
+        <select id="profileSelect">
+            <option value="foot_shortest">foot_shortest</option>
+            <option value="foot_balanced">foot_balanced</option>
+            <option value="foot_fastest">foot_fastest</option>
+            <option value="car_shortest">car_shortest</option>
+            <option value="car_balanced">car_balanced</option>
+            <option value="car_fastest">car_fastest</option>
+        </select>
+        <button onclick="testSingleRoute()">선택된 Profile로 라우팅 테스트</button>
+        <div id="singleRouteResult" class="result-box" style="display: none;"></div>
+    </div>
+    
+    <!-- 4. 모든 Profile 테스트 -->
+    <div class="container test-section">
+        <h2>4. 모든 Profile 라우팅 테스트</h2>
+        <button onclick="testAllRoutes()">모든 Profile 테스트 (시간 소요)</button>
+        <div id="allRoutesResult" class="result-box" style="display: none;"></div>
+    </div>
+    
+    <!-- 5. API 응답 시간 측정 -->
+    <div class="container test-section">
+        <h2>5. API 응답 시간 측정</h2>
+        <button onclick="measurePerformance()">성능 측정</button>
+        <div id="performanceResult" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- 6. JSON CustomModel 로드 테스트 -->
+    <div class="container test-section">
+        <h2>6. JSON CustomModel 로드 테스트</h2>
+        <div class="input-group">
+            <label>JSON 파일 경로:</label>
+            <input type="text" id="jsonFilePath" value="data/customModels/foot_shortest_avoid_zone.json" />
+        </div>
+        <button onclick="testLoadJsonCustomModel()">JSON → CustomModel 변환</button>
+        <div id="loadJsonResult" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- 7. Profile 복사 + JSON 통합 테스트 -->
+    <div class="container test-section">
+        <h2>7. Profile 복사 + JSON CustomModel 통합</h2>
+        <div class="input-group">
+            <label>원본 Profile:</label>
+            <select id="originalProfile">
+                <option value="foot_shortest">foot_shortest</option>
+                <option value="foot_balanced">foot_balanced</option>
+                <option value="foot_fastest">foot_fastest</option>
+                <option value="car_shortest">car_shortest</option>
+                <option value="car_balanced">car_balanced</option>
+                <option value="car_fastest">car_fastest</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>JSON 파일 경로:</label>
+            <input type="text" id="jsonFilePathForCopy" value="data/customModels/foot_shortest_avoid_zone.json" />
+        </div>
+        <div class="input-group">
+            <label>새 Profile 이름:</label>
+            <input type="text" id="newProfileName" value="foot_shortest_custom" />
+        </div>
+        <button onclick="testCopyProfileWithJson()">Profile 복사 + JSON 통합</button>
+        <div id="copyProfileResult" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- 8. 통합된 Profile 라우팅 테스트 -->
+    <div class="container test-section">
+        <h2>8. 통합된 Profile 라우팅 테스트</h2>
+        <div class="input-group">
+            <label>원본 Profile:</label>
+            <select id="originalProfileForTest">
+                <option value="foot_shortest">foot_shortest</option>
+                <option value="foot_balanced">foot_balanced</option>
+                <option value="foot_fastest">foot_fastest</option>
+                <option value="car_shortest">car_shortest</option>
+                <option value="car_balanced">car_balanced</option>
+                <option value="car_fastest">car_fastest</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>JSON 파일 경로:</label>
+            <input type="text" id="jsonFilePathForTest" value="data/customModels/foot_shortest_avoid_zone.json" />
+        </div>
+        <div class="input-group">
+            <label>새 Profile 이름:</label>
+            <input type="text" id="newProfileNameForTest" value="foot_shortest_test" />
+        </div>
+        <button onclick="testIntegratedProfile()">통합 Profile 테스트</button>
+        <div id="integratedTestResult" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- 9. 전체 통합 테스트 -->
+    <div class="container test-section">
+        <h2>9. 전체 통합 테스트</h2>
+        <div class="input-group">
+            <label>원본 Profile:</label>
+            <select id="fullTestOriginalProfile">
+                <option value="foot_shortest">foot_shortest</option>
+                <option value="foot_balanced">foot_balanced</option>
+                <option value="car_fastest">car_fastest</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>JSON 파일 경로:</label>
+            <input type="text" id="fullTestJsonPath" value="data/customModels/foot_shortest_avoid_zone.json" />
+        </div>
+        <div class="input-group">
+            <label>새 Profile 이름:</label>
+            <input type="text" id="fullTestNewProfile" value="full_test_profile" />
+        </div>
+        <button onclick="runFullIntegrationTest()">전체 통합 테스트 실행</button>
+        <div id="fullTestResult" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- 10. 지도 기반 길찾기 테스트 -->
+    <div class="container test-section">
+        <h2>10. 🗺️ 지도 기반 길찾기 테스트</h2>
+        
+        <div class="route-controls">
+            <label>Profile 선택:</label>
+            <select id="mapProfileSelect">
+                <option value="foot_shortest">foot_shortest</option>
+                <option value="foot_balanced">foot_balanced</option>
+                <option value="foot_fastest">foot_fastest</option>
+                <option value="car_shortest">car_shortest</option>
+                <option value="car_balanced">car_balanced</option>
+                <option value="car_fastest">car_fastest</option>
+            </select>
+        </div>
+        
+        <div class="route-controls">
+            <label>출발지:</label>
+            <input type="text" id="startLat" class="coord-input" value="37.5547" placeholder="위도">
+            <input type="text" id="startLon" class="coord-input" value="126.9706" placeholder="경도">
+            <span>(서울역)</span>
+        </div>
+        
+        <div class="route-controls">
+            <label>도착지:</label>
+            <input type="text" id="endLat" class="coord-input" value="37.5636" placeholder="위도">
+            <input type="text" id="endLon" class="coord-input" value="126.9834" placeholder="경도">
+            <span>(명동역)</span>
+        </div>
+        
+        <div class="route-controls">
+            <button onclick="findRouteOnMap()">길찾기 실행</button>
+            <button onclick="clearMap()">지도 초기화</button>
+            <button onclick="setPresetLocations()">서울 명소 설정</button>
+        </div>
+        
+        <!-- 지도 표시 영역 -->
+        <div id="map"></div>
+        
+        <!-- 경로 정보 표시 -->
+        <div id="routeInfo" class="route-info" style="display: none;"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const BASE_URL = 'http://localhost:9806/test/graphhopper';
+        const ROUTE_API_URL = 'http://localhost:9806/api/route/find';
+        
+        // 지도 초기화
+        let map, startMarker, endMarker, routeLine;
+        
+        function initMap() {
+            if (!map) {
+                map = L.map('map').setView([37.5665, 126.9780], 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                
+                // 지도 클릭 이벤트 추가
+                map.on('click', function(e) {
+                    const lat = e.latlng.lat.toFixed(6);
+                    const lng = e.latlng.lng.toFixed(6);
+                    
+                    // 출발지가 설정되지 않았으면 출발지로 설정
+                    if (!startMarker) {
+                        document.getElementById('startLat').value = lat;
+                        document.getElementById('startLon').value = lng;
+                        addStartMarker(lat, lng);
+                    } 
+                    // 출발지는 있고 도착지가 없으면 도착지로 설정
+                    else if (!endMarker) {
+                        document.getElementById('endLat').value = lat;
+                        document.getElementById('endLon').value = lng;
+                        addEndMarker(lat, lng);
+                    }
+                    // 둘 다 있으면 출발지를 새로 설정
+                    else {
+                        clearMap();
+                        document.getElementById('startLat').value = lat;
+                        document.getElementById('startLon').value = lng;
+                        addStartMarker(lat, lng);
+                    }
+                });
+            }
+        }
+        
+        function addStartMarker(lat, lng) {
+            if (startMarker) map.removeLayer(startMarker);
+            startMarker = L.marker([lat, lng], {
+                title: "출발지",
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map).bindPopup("출발지").openPopup();
+        }
+        
+        function addEndMarker(lat, lng) {
+            if (endMarker) map.removeLayer(endMarker);
+            endMarker = L.marker([lat, lng], {
+                title: "도착지",
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map).bindPopup("도착지");
+        }
+        
+        function clearMap() {
+            if (routeLine) map.removeLayer(routeLine);
+            if (startMarker) map.removeLayer(startMaraker);
+            if (endMarker) map.removeLayer(endMarker);
+            routeLine = null;
+            startMarker = null;
+            endMarker = null;
+            document.getElementById('routeInfo').style.display = 'none';
+        }
+        
+        function setPresetLocations() {
+            // 서울 명소들
+            const locations = [
+                { name: "서울역", lat: 37.5547, lng: 126.9706 },
+                { name: "명동역", lat: 37.5636, lng: 126.9834 },
+                { name: "강남역", lat: 37.4979, lng: 127.0276 },
+                { name: "홍대입구역", lat: 37.5563, lng: 126.9236 },
+                { name: "경복궁", lat: 37.5788, lng: 126.9770 },
+                { name: "남산타워", lat: 37.5512, lng: 126.9882 }
+            ];
+            
+            const randomStart = locations[Math.floor(Math.random() * locations.length)];
+            let randomEnd = locations[Math.floor(Math.random() * locations.length)];
+            while (randomEnd === randomStart) {
+                randomEnd = locations[Math.floor(Math.random() * locations.length)];
+            }
+            
+            document.getElementById('startLat').value = randomStart.lat;
+            document.getElementById('startLon').value = randomStart.lng;
+            document.getElementById('endLat').value = randomEnd.lat;
+            document.getElementById('endLon').value = randomEnd.lng;
+            
+            clearMap();
+            addStartMarker(randomStart.lat, randomStart.lng);
+            addEndMarker(randomEnd.lat, randomEnd.lng);
+            
+            // 지도 뷰 조정
+            const bounds = L.latLngBounds([
+                [randomStart.lat, randomStart.lng],
+                [randomEnd.lat, randomEnd.lng]
+            ]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
+        async function findRouteOnMap() {
+            const profile = document.getElementById('mapProfileSelect').value;
+            const startLat = parseFloat(document.getElementById('startLat').value);
+            const startLon = parseFloat(document.getElementById('startLon').value);
+            const endLat = parseFloat(document.getElementById('endLat').value);
+            const endLon = parseFloat(document.getElementById('endLon').value);
+            
+            if (isNaN(startLat) || isNaN(startLon) || isNaN(endLat) || isNaN(endLon)) {
+                alert('올바른 좌표를 입력해주세요.');
+                return;
+            }
+            
+            // 기존 경로 제거
+            if (routeLine) map.removeLayer(routeLine);
+            
+            // 마커 추가
+            addStartMarker(startLat, startLon);
+            addEndMarker(endLat, endLon);
+            
+            // 경로 정보 표시
+            const routeInfo = document.getElementById('routeInfo');
+            routeInfo.style.display = 'block';
+            routeInfo.innerHTML = `<strong>길찾기 중...</strong><br>Profile: ${profile}`;
+            
+            try {
+                // GraphHopper API 호출 (기존 API 사용)
+                const response = await fetch(`${BASE_URL}/route/test?profile=${profile}&fromLat=${startLat}&fromLon=${startLon}&toLat=${endLat}&toLon=${endLon}`, {
+                    method: 'GET'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.text();
+                
+                // 간단한 경로 라인 표시 (직선)
+                routeLine = L.polyline([
+                    [startLat, startLon],
+                    [endLat, endLon]
+                ], {
+                    color: '#007bff',
+                    weight: 5,
+                    opacity: 0.7
+                }).addTo(map);
+                
+                // 지도 뷰 조정
+                const bounds = L.latLngBounds([
+                    [startLat, startLon],
+                    [endLat, endLon]
+                ]);
+                map.fitBounds(bounds, { padding: [50, 50] });
+                
+                // 결과 표시
+                routeInfo.innerHTML = `
+                    <strong>길찾기 완료!</strong><br>
+                    <strong>Profile:</strong> ${profile}<br>
+                    <strong>출발지:</strong> ${startLat.toFixed(4)}, ${startLon.toFixed(4)}<br>
+                    <strong>도착지:</strong> ${endLat.toFixed(4)}, ${endLon.toFixed(4)}<br>
+                    <br>
+                    <strong>GraphHopper 응답:</strong><br>
+                    <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">${result}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('길찾기 오류:', error);
+                routeInfo.innerHTML = `
+                    <strong style="color: red;">길찾기 실패!</strong><br>
+                    오류: ${error.message}
+                `;
+            }
+        }
+        
+        // 공통 API 호출 함수
+        async function callAPI(endpoint, resultElementId, loadingMessage = '로딩 중...') {
+            const resultElement = document.getElementById(resultElementId);
+            resultElement.style.display = 'block';
+            resultElement.className = 'result-box loading';
+            resultElement.textContent = loadingMessage;
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${BASE_URL}${endpoint}`);
+                const endTime = performance.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.text();
+                const responseTime = Math.round(endTime - startTime);
+                
+                resultElement.className = 'result-box success';
+                resultElement.textContent = `응답 시간: ${responseTime}ms\n\n${result}`;
+                
+                return { result, responseTime };
+                
+            } catch (error) {
+                resultElement.className = 'result-box error';
+                resultElement.textContent = `오류 발생: ${error.message}`;
+                return { error: error.message };
+            }
+        }
+        
+        // 1. GraphHopper 상태 확인
+        async function checkStatus() {
+            await callAPI('/status', 'statusResult', 'GraphHopper 상태 확인 중...');
+        }
+        
+        // 2. Profile 목록 조회
+        async function getProfiles() {
+            const result = await callAPI('/profiles', 'profilesResult', 'Profile 목록 조회 중...');
+            
+            // Profile 목록을 select 옵션에 업데이트
+            if (result.result && !result.error) {
+                try {
+                    const profiles = JSON.parse(result.result);
+                    updateProfileSelects(profiles);
+                } catch (e) {
+                    console.log('Profile 목록 파싱 실패:', e);
+                }
+            }
+        }
+        
+        // Profile select 옵션들 업데이트
+        function updateProfileSelects(profiles) {
+            const selects = [
+                'profileSelect', 'originalProfile', 'originalProfileForTest', 
+                'fullTestOriginalProfile', 'mapProfileSelect'
+            ];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '';
+                    profiles.forEach(profile => {
+                        if (!profile.startsWith('오류:')) {
+                            const option = document.createElement('option');
+                            option.value = profile;
+                            option.textContent = profile;
+                            if (profile === currentValue) {
+                                option.selected = true;
+                            }
+                            select.appendChild(option);
+                        }
+                    });
+                }
+            });
+        }
+        
+        // 3. 단일 Profile 라우팅 테스트
+        async function testSingleRoute() {
+            const selectedProfile = document.getElementById('profileSelect').value;
+            await callAPI(`/route/test?profile=${selectedProfile}`, 'singleRouteResult', 
+                `${selectedProfile} 프로필로 라우팅 테스트 중...`);
+        }
+        
+        // 4. 모든 Profile 테스트
+        async function testAllRoutes() {
+            await callAPI('/route/test-all', 'allRoutesResult', 
+                '모든 Profile 테스트 중... (1-2분 소요될 수 있습니다)');
+        }
+        
+        // 5. 성능 측정
+        async function measurePerformance() {
+            const resultElement = document.getElementById('performanceResult');
+            resultElement.style.display = 'block';
+            resultElement.className = 'result-box loading';
+            resultElement.textContent = '성능 측정 중... (여러 번 호출)';
+            
+            const testCount = 5;
+            const results = [];
+            
+            try {
+                for (let i = 0; i < testCount; i++) {
+                    const startTime = performance.now();
+                    const response = await fetch(`${BASE_URL}/route/test?profile=foot_shortest`);
+                    const endTime = performance.now();
+                    
+                    if (response.ok) {
+                        const responseTime = Math.round(endTime - startTime);
+                        results.push(responseTime);
+                        resultElement.textContent = `성능 측정 중... (${i + 1}/${testCount}) - ${responseTime}ms`;
+                    }
+                    
+                    // 0.5초 대기
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                const avgTime = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
+                const minTime = Math.min(...results);
+                const maxTime = Math.max(...results);
+                
+                resultElement.className = 'result-box success';
+                resultElement.textContent = 
+                    `=== 성능 측정 결과 (${testCount}회 호출) ===\n` +
+                    `평균 응답 시간: ${avgTime}ms\n` +
+                    `최소 응답 시간: ${minTime}ms\n` +
+                    `최대 응답 시간: ${maxTime}ms\n` +
+                    `개별 결과: ${results.join('ms, ')}ms`;
+                    
+            } catch (error) {
+                resultElement.className = 'result-box error';
+                resultElement.textContent = `성능 측정 오류: ${error.message}`;
+            }
+        }
+        
+        // 6. JSON CustomModel 로드 테스트
+        async function testLoadJsonCustomModel() {
+            const jsonFilePath = document.getElementById('jsonFilePath').value;
+            if (!jsonFilePath.trim()) {
+                alert('JSON 파일 경로를 입력하세요.');
+                return;
+            }
+            
+            const encodedPath = encodeURIComponent(jsonFilePath);
+            await callAPI(`/custommodel/load?jsonFilePath=${encodedPath}`, 'loadJsonResult', 
+                'JSON → CustomModel 변환 중...');
+        }
+        
+        // 7. Profile 복사 + JSON 통합 테스트
+        async function testCopyProfileWithJson() {
+            const originalProfile = document.getElementById('originalProfile').value;
+            const jsonFilePath = document.getElementById('jsonFilePathForCopy').value;
+            const newProfileName = document.getElementById('newProfileName').value;
+            
+            if (!jsonFilePath.trim() || !newProfileName.trim()) {
+                alert('모든 필드를 입력하세요.');
+                return;
+            }
+            
+            const params = new URLSearchParams({
+                originalProfileName: originalProfile,
+                jsonFilePath: jsonFilePath,
+                newProfileName: newProfileName
+            });
+            
+            await callAPI(`/profile/copy-with-json?${params}`, 'copyProfileResult', 
+                'Profile 복사 + JSON 통합 중...');
+        }
+        
+        // 8. 통합된 Profile 라우팅 테스트
+        async function testIntegratedProfile() {
+            const originalProfile = document.getElementById('originalProfileForTest').value;
+            const jsonFilePath = document.getElementById('jsonFilePathForTest').value;
+            const newProfileName = document.getElementById('newProfileNameForTest').value;
+            
+            if (!jsonFilePath.trim() || !newProfileName.trim()) {
+                alert('모든 필드를 입력하세요.');
+                return;
+            }
+            
+            const params = new URLSearchParams({
+                originalProfileName: originalProfile,
+                jsonFilePath: jsonFilePath,
+                newProfileName: newProfileName
+            });
+            
+            await callAPI(`/profile/test-integrated?${params}`, 'integratedTestResult', 
+                '통합된 Profile 테스트 중...');
+        }
+        
+        // 9. 전체 통합 테스트
+        async function runFullIntegrationTest() {
+            const originalProfile = document.getElementById('fullTestOriginalProfile').value;
+            const jsonFilePath = document.getElementById('fullTestJsonPath').value;
+            const newProfileName = document.getElementById('fullTestNewProfile').value;
+            
+            if (!jsonFilePath.trim() || !newProfileName.trim()) {
+                alert('모든 필드를 입력하세요.');
+                return;
+            }
+            
+            const params = new URLSearchParams({
+                originalProfileName: originalProfile,
+                jsonFilePath: jsonFilePath,
+                newProfileName: newProfileName
+            });
+            
+            await callAPI(`/integration/test?${params}`, 'fullTestResult', 
+                '전체 통합 테스트 실행 중...');
+        }
+        
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            console.log('GraphHopper 테스트 페이지 로드 완료');
+            // 지도 초기화 및 Profile 목록 자동 조회
+            initMap();
+            setTimeout(getProfiles, 1000);
+        });
+    </script>
+</body>
+</html>
