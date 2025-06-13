@@ -79,6 +79,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/jwt'  // axios 인스턴스 import
 
 const router = useRouter()
 
@@ -105,22 +106,52 @@ const day = ref('')
 const termsAgreement = ref('')
 const showTermsError = ref(false)
 
-const handleSubmit = () => {
-   if (termsAgreement.value !== 'agree') {
+const handleSubmit = async () => {
+  if (termsAgreement.value !== 'agree') {
     showTermsError.value = true
     return
   }
-  alert(`🎉 ${username.value}님, 가입을 축하드립니다!`)
-  // router.push('/main')
+
+  const birth = `${year.value}-${month.value.padStart(2, '0')}-${day.value.padStart(2, '0')}`
+
+  try {
+    const response = await api.post('/auth/register', {
+      username: id.value,
+      password: password.value,
+      email: email.value,
+      name: username.value,
+      phone: phone.value,
+      gender: gender.value,
+      birth: birth
+    })
+
+    alert(`🎉 ${username.value}님, 가입을 축하드립니다!`)
+    router.push('/login')
+  } catch (err) {
+    console.error(err)
+    alert('회원가입 실패: 서버 오류 또는 유효성 검사 실패')
+  }
 }
 
-const checkId = () => {
-  if (id.value === 'testuser') {
+const checkId = async () => {
+  if (id.value.length < 5 || id.value.length > 14) {
     idChecked.value = false
-    idError.value = true
-  } else {
-    idChecked.value = true
     idError.value = false
+    return
+  }
+
+  try {
+    const res = await api.get(`/auth/check-id/${id.value}`)
+    if (res.data.exists) {
+      idChecked.value = false
+      idError.value = true
+    } else {
+      idChecked.value = true
+      idError.value = false
+    }
+  } catch (err) {
+    console.error(err)
+    alert('ID 중복 확인 실패')
   }
 }
 
