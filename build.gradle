@@ -32,6 +32,7 @@ dependencies {
 
     // API 문서화 & 개발 도구
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     // JSON / GeoJSON
@@ -40,8 +41,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
 
     // 공간정보 처리
-    implementation 'org.locationtech.jts:jts-core:1.18.2'
-    implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
+    implementation 'org.locationtech.jts:jts-core:1.19.0'
+    implementation 'org.locationtech.jts.io:jts-io-common:1.19.0'
 
     // GraphHopper
     implementation 'com.graphhopper:graphhopper-core:8.0'
@@ -59,6 +60,11 @@ dependencies {
 
     // 해쉬화 및 암호화
     implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    //Spring Boot Actuator를 사용
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // ─ 선택 (Prometheus 메트릭스 노출이 필요할 때) ─
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 }
 
 tasks.named('test') {

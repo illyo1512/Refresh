@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회피 구역 경로 계산 테스트</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            display: flex;
+            height: 80vh;
+        }
+        
+        .controls {
+            width: 400px;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #38a169;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .coordinate-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .coordinate-input input {
+            flex: 1;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .error {
+            color: #f56565;
+            background: #fed7d7;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            color: #38a169;
+            background: #c6f6d5;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚫 회피 구역 경로 계산 테스트</h1>
+            <p>GraphHopper 8.0 + 회피 구역 기능</p>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <h3>📍 경로 설정</h3>
+                
+                <div class="form-group">
+                    <label>출발지 좌표</label>
+                    <div class="coordinate-input">
+                        <input type="number" id="startLat" placeholder="위도" value="37.5665" step="0.000001">
+                        <input type="number" id="startLng" placeholder="경도" value="126.9780" step="0.000001">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>도착지 좌표</label>
+                    <div class="coordinate-input">
+                        <input type="number" id="endLat" placeholder="위도" value="37.5651" step="0.000001">
+                        <input type="number" id="endLng" placeholder="경도" value="126.9895" step="0.000001">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>기본 프로필</label>
+                    <select id="baseProfile">
+                        <option value="foot_shortest">보행자 - 최단거리</option>
+                        <option value="foot_balanced" selected>보행자 - 균형</option>
+                        <option value="foot_fastest">보행자 - 최단시간</option>
+                        <option value="car_shortest">자동차 - 최단거리</option>
+                        <option value="car_balanced">자동차 - 균형</option>
+                        <option value="car_fastest">자동차 - 최단시간</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>회피 프로필 (선택사항)</label>
+                    <select id="avoidProfile">
+                        <option value="">자동 선택</option>
+                        <option value="foot_sh_aviod">보행자 회피</option>
+                        <option value="car_sh_aviod">자동차 회피</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>회피 구역 파일</label>
+                    <select id="avoidZoneFile">
+                        <option value="">회피 구역 없음</option>
+                        <option value="danger_zone.geojson">위험 구역</option>
+                        <option value="construction_zone.geojson">공사 구역</option>
+                        <option value="flood_zone.geojson">침수 구역</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="calculateNormalRoute()">
+                        🚶 일반 경로 계산
+                    </button>
+                    <button class="btn btn-danger" onclick="calculateAvoidRoute()">
+                        🚫 회피 경로 계산
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="compareRoutes()">
+                        📊 경로 비교
+                    </button>
+                    <button class="btn" onclick="clearMap()">
+                        🗑️ 지도 초기화
+                    </button>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div>⏳ 경로 계산 중...</div>
+                </div>
+                
+                <div class="result-section" id="results" style="display: none;">
+                    <h4>📈 계산 결과</h4>
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+            
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="info-panel" id="infoPanel" style="display: none;">
+                    <h4>ℹ️ 경로 정보</h4>
+                    <div id="routeInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 지도 초기화
+        let map = L.map('map').setView([37.5665, 126.9780], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // 레이어 그룹들
+        let normalRouteLayer = L.layerGroup().addTo(map);
+        let avoidRouteLayer = L.layerGroup().addTo(map);
+        let markersLayer = L.layerGroup().addTo(map);
+        let avoidZoneLayer = L.layerGroup().addTo(map);
+        
+        // 현재 경로 정보
+        let currentRoutes = {
+            normal: null,
+            avoid: null
+        };
+        
+        // 일반 경로 계산
+        async function calculateNormalRoute() {
+            const params = getRouteParams();
+            
+            try {
+                showLoading(true);
+                const response = await fetch('/api/navigation/route-normal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(params)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentRoutes.normal = result;
+                    displayRoute(result, 'normal', '#48bb78');
+                    showResult('일반 경로 계산 완료', 'success');
+                    updateRouteInfo();
+                } else {
+                    showResult('오류: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showResult('네트워크 오류: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 회피 경로 계산
+        async function calculateAvoidRoute() {
+            const params = getRouteParams();
+            const avoidZoneFile = document.getElementById('avoidZoneFile').value;
+            
+            if (!avoidZoneFile) {
+                showResult('회피 구역 파일을 선택해주세요.', 'error');
+                return;
+            }
+            
+            params.avoidZoneFile = avoidZoneFile;
+            
+            const avoidProfile = document.getElementById('avoidProfile').value;
+            if (avoidProfile) {
+                params.avoidProfile = avoidProfile;
+            }
+            
+            try {
+                showLoading(true);
+                const response = await fetch('/api/navigation/route-with-avoid-zone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(params)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentRoutes.avoid = result;
+                    displayRoute(result, 'avoid', '#f56565');
+                    showResult('회피 경로 계산 완료', 'success');
+                    updateRouteInfo();
+                } else {
+                    showResult('오류: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showResult('네트워크 오류: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 경로 비교
+        async function compareRoutes() {
+            await calculateNormalRoute();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+            await calculateAvoidRoute();
+            
+            if (currentRoutes.normal && currentRoutes.avoid) {
+                const comparison = {
+                    distanceDiff: currentRoutes.avoid.distance - currentRoutes.normal.distance,
+                    timeDiff: currentRoutes.avoid.time - currentRoutes.normal.time,
+                    normalDistance: currentRoutes.normal.distance,
+                    avoidDistance: currentRoutes.avoid.distance,
+                    normalTime: currentRoutes.normal.time,
+                    avoidTime: currentRoutes.avoid.time
+                };
+                
+                displayComparison(comparison);
+            }
+        }
+        
+        // 공통 파라미터 추출
+        function getRouteParams() {
+            return {
+                startLat: document.getElementById('startLat').value,
+                startLng: document.getElementById('startLng').value,
+                endLat: document.getElementById('endLat').value,
+                endLng: document.getElementById('endLng').value,
+                baseProfile: document.getElementById('baseProfile').value
+            };
+        }
+        
+        // 경로 표시
+        function displayRoute(result, type, color) {
+            const layerGroup = type === 'normal' ? normalRouteLayer : avoidRouteLayer;
+            layerGroup.clearLayers();
+            
+            // 경로 라인
+            if (result.points) {
+                const coords = decodePolyline(result.points);
+                const polyline = L.polyline(coords, {
+                    color: color,
+                    weight: 5,
+                    opacity: 0.7
+                }).addTo(layerGroup);
+                
+                // 지도 범위 조정
+                map.fitBounds(polyline.getBounds());
+            }
+            
+            // 출발지/도착지 마커
+            const params = getRouteParams();
+            L.marker([params.startLat, params.startLng])
+                .bindPopup('🚩 출발지')
+                .addTo(markersLayer);
+                
+            L.marker([params.endLat, params.endLng])
+                .bindPopup('🏁 도착지')
+                .addTo(markersLayer);
+        }
+        
+        // 결과 정보 업데이트
+        function updateRouteInfo() {
+            const infoPanel = document.getElementById('infoPanel');
+            const routeInfo = document.getElementById('routeInfo');
+            
+            let html = '';
+            
+            if (currentRoutes.normal) {
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <strong style="color: #48bb78;">🚶 일반 경로</strong><br>
+                        거리: ${(currentRoutes.normal.distance / 1000).toFixed(2)} km<br>
+                        시간: ${Math.round(currentRoutes.normal.time / 60000)} 분<br>
+                        프로필: ${currentRoutes.normal.profile || currentRoutes.normal.baseProfile}
+                    </div>
+                `;
+            }
+            
+            if (currentRoutes.avoid) {
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <strong style="color: #f56565;">🚫 회피 경로</strong><br>
+                        거리: ${(currentRoutes.avoid.distance / 1000).toFixed(2)} km<br>
+                        시간: ${Math.round(currentRoutes.avoid.time / 60000)} 분<br>
+                        회피 프로필: ${currentRoutes.avoid.usedAvoidProfile}<br>
+                        회피 구역: ${currentRoutes.avoid.avoidZoneApplied}
+                    </div>
+                `;
+            }
+            
+            if (html) {
+                routeInfo.innerHTML = html;
+                infoPanel.style.display = 'block';
+            }
+        }
+        
+        // 경로 비교 결과 표시
+        function displayComparison(comparison) {
+            const resultContent = document.getElementById('resultContent');
+            
+            const distanceIncrease = ((comparison.distanceDiff / comparison.normalDistance) * 100).toFixed(1);
+            const timeIncrease = ((comparison.timeDiff / comparison.normalTime) * 100).toFixed(1);
+            
+            resultContent.innerHTML = `
+                <div><strong>📊 경로 비교 결과</strong></div>
+                <hr>
+                <div>🚶 일반 경로: ${(comparison.normalDistance / 1000).toFixed(2)} km, ${Math.round(comparison.normalTime / 60000)} 분</div>
+                <div>🚫 회피 경로: ${(comparison.avoidDistance / 1000).toFixed(2)} km, ${Math.round(comparison.avoidTime / 60000)} 분</div>
+                <hr>
+                <div>📈 거리 증가: ${(comparison.distanceDiff / 1000).toFixed(2)} km (+${distanceIncrease}%)</div>
+                <div>⏱️ 시간 증가: ${Math.round(comparison.timeDiff / 60000)} 분 (+${timeIncrease}%)</div>
+            `;
+            
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        // 지도 초기화
+        function clearMap() {
+            normalRouteLayer.clearLayers();
+            avoidRouteLayer.clearLayers();
+            markersLayer.clearLayers();
+            avoidZoneLayer.clearLayers();
+            
+            currentRoutes = { normal: null, avoid: null };
+            
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('infoPanel').style.display = 'none';
+            
+            showResult('지도가 초기화되었습니다.', 'success');
+        }
+        
+        // 로딩 표시
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        // 결과 메시지 표시
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('resultContent');
+            resultDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            document.getElementById('results').style.display = 'block';
+            
+            // 3초 후 자동 숨김 (에러가 아닌 경우)
+            if (type === 'success') {
+                setTimeout(() => {
+                    if (resultDiv.innerHTML.includes(message)) {
+                        document.getElementById('results').style.display = 'none';
+                    }
+                }, 3000);
+            }
+        }
+        
+        // 폴리라인 디코딩 (간단한 구현)
+        function decodePolyline(encoded) {
+            // GraphHopper의 LineString 형태를 파싱
+            // 실제로는 더 복잡한 디코딩이 필요할 수 있음
+            try {
+                const coords = encoded.split(',').map((coord, index) => {
+                    return index % 2 === 0 ? 
+                        parseFloat(coord) : // lat
+                        parseFloat(coord);  // lng
+                });
+                
+                const result = [];
+                for (let i = 0; i < coords.length; i += 2) {
+                    result.push([coords[i], coords[i + 1]]);
+                }
+                return result;
+            } catch (error) {
+                console.error('폴리라인 디코딩 오류:', error);
+                return [];
+            }
+        }
+        
+        // 지도 클릭 이벤트 (좌표 설정용)
+        let isSettingStart = true;
+        map.on('click', function(e) {
+            if (isSettingStart) {
+                document.getElementById('startLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('startLng').value = e.latlng.lng.toFixed(6);
+                isSettingStart = false;
+                showResult('출발지가 설정되었습니다. 다시 클릭하여 도착지를 설정하세요.', 'success');
+            } else {
+                document.getElementById('endLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('endLng').value = e.latlng.lng.toFixed(6);
+                isSettingStart = true;
+                showResult('도착지가 설정되었습니다. 경로를 계산해보세요.', 'success');
+            }
+        });
+    </script>
+</body>
+</html>
