@@ -40,10 +40,16 @@ public class AuthController {
             if (authService.existsByNickname(signupRequest.getNickname())) {
                 return ResponseEntity.badRequest().body("이미 존재하는 닉네임입니다.");
             }
+            
+            // ID 중복 확인
+            if (authService.existsById(signupRequest.getId())) {
+                return ResponseEntity.badRequest().body("이미 존재하는 ID입니다.");
+            }
 
             // 사용자 엔티티 생성
             User user = new User();
             user.setEmail(signupRequest.getEmail());
+            user.setId(signupRequest.getId());
             user.setNickname(signupRequest.getNickname());
             user.setGender(signupRequest.getGender());
             user.setPhoneNumber(signupRequest.getPhoneNumber());
@@ -70,11 +76,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
         try {
-            // 사용자 인증 처리
-            User user = authService.authenticateUser(loginRequest.getEmail(), loginRequest.getPassword());
+            // 사용자 인증 처리 (ID와 비밀번호로 로그인)
+            User user = authService.authenticateUser(loginRequest.getId(), loginRequest.getPassword());
             
             if (user == null) {
-                return ResponseEntity.badRequest().body("이메일 또는 비밀번호가 올바르지 않습니다.");
+                return ResponseEntity.badRequest().body("ID 또는 비밀번호가 올바르지 않습니다.");
             }
 
             // 응답용 DTO 변환 (비밀번호 제외)
@@ -123,6 +129,7 @@ public class AuthController {
         UserDTO userDTO = new UserDTO();
         userDTO.setUserId(user.getUserId());
         userDTO.setEmail(user.getEmail());
+        userDTO.setId(user.getId());
         userDTO.setNickname(user.getNickname());
         userDTO.setGender(user.getGender());
         userDTO.setRole(user.getRole());

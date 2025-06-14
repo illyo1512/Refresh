@@ -29,10 +29,26 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     boolean existsByNickname(String nickname);
     
     /**
+     * ID 존재 여부를 확인합니다.
+     * 생성되는 쿼리: SELECT COUNT(*) > 0 FROM users WHERE id = ?
+     * @param id 확인할 사용자 ID
+     * @return ID가 존재하면 true, 존재하지 않으면 false
+     */
+    boolean existsById(String id);
+    
+    /**
      * 이메일로 사용자를 찾습니다.
      * 생성되는 쿼리: SELECT * FROM users WHERE email = ?
      * @param email 찾을 사용자의 이메일 주소
      * @return 찾은 사용자 엔티티, 존재하지 않으면 null
      */
     User findByEmail(String email);
+    
+    /**
+     * ID로 사용자를 찾습니다.
+     * 생성되는 쿼리: SELECT * FROM users WHERE id = ?
+     * @param id 찾을 사용자의 ID
+     * @return 찾은 사용자 엔티티, 존재하지 않으면 null
+     */
+    User findById(String id);
 }

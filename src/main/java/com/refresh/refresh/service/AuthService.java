@@ -50,12 +50,30 @@ public class AuthService {
     }
     
     /**
+     * ID 중복 여부를 확인합니다.
+     * @param id 확인할 사용자 ID
+     * @return ID가 이미 존재하면 true, 존재하지 않으면 false
+     */
+    public boolean existsById(String id) {
+        return userRepository.existsById(id);
+    }
+    
+    /**
      * 이메일로 사용자를 찾습니다.
      * @param email 찾을 사용자의 이메일 주소
      * @return 찾은 사용자 엔티티, 존재하지 않으면 null
      */
     public User findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+    
+    /**
+     * ID로 사용자를 찾습니다.
+     * @param id 찾을 사용자의 ID
+     * @return 찾은 사용자 엔티티, 존재하지 않으면 null
+     */
+    public User findById(String id) {
+        return userRepository.findById(id);
     }
     
     /**
@@ -78,12 +96,12 @@ public class AuthService {
     
     /**
      * 사용자 로그인 인증을 처리합니다.
-     * @param email 로그인할 이메일
+     * @param id 로그인할 사용자 ID
      * @param password 로그인할 비밀번호 (평문)
      * @return 인증 성공 시 사용자 엔티티, 실패 시 null
      */
-    public User authenticateUser(String email, String password) {
-        User user = findByEmail(email);
+    public User authenticateUser(String id, String password) {
+        User user = findById(id);
         
         if (user == null) {
             return null; // 사용자가 존재하지 않음

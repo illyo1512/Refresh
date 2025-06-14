@@ -2,7 +2,6 @@ package com.refresh.refresh.service.navigate;
 
 import com.graphhopper.GraphHopper;
 import com.graphhopper.config.Profile;
-import com.graphhopper.config.CHProfile;
 import com.graphhopper.util.CustomModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,11 +42,13 @@ public class GraphHopperinit {
                 createFootShortestProfile(),
                 createFootBalancedProfile(), 
                 createFootFastestProfile(),
+                createFootShProfile_aviod(),
                 
                 // 자동차 프로필들
                 createCarFastestProfile(),
                 createCarBalancedProfile(),
-                createCarShortestProfile()
+                createCarShortestProfile(),
+                createCarShProfile_aviod()
             ));
             
             /*// 4. CH 최적화 설정
@@ -76,7 +77,7 @@ public class GraphHopperinit {
     private void initializeCustomModels() {
         log.info("CustomModel 템플릿 초기화 시작");
         
-        // === 보행자용 템플릿들 ===
+        // === 보행자 프로필들 ===
         // 보행자 - 최단거리 우선
         CustomModel footShortest = new CustomModel();
         footShortest.setDistanceInfluence(200.0);
@@ -92,7 +93,13 @@ public class GraphHopperinit {
         footFastest.setDistanceInfluence(0.0);
         customModelTemplates.put("foot_fastest", footFastest);
         
-        // === 자동차용 템플릿들 ===
+        // 보행자 - 회피용 (최단거리 기반)
+        CustomModel footAvoid = new CustomModel();
+        footAvoid.setDistanceInfluence(200.0);
+        footAvoid.setHeadingPenalty(300d); // 회피 시 방향 변경 페널티
+        customModelTemplates.put("foot_sh_aviod", footAvoid);
+        
+        // === 자동차 프로필들 ===
         // 자동차 - 최빠른 시간 우선
         CustomModel carFastest = new CustomModel();
         carFastest.setDistanceInfluence(0.0);
@@ -107,6 +114,12 @@ public class GraphHopperinit {
         CustomModel carShortest = new CustomModel();
         carShortest.setDistanceInfluence(100.0);
         customModelTemplates.put("car_shortest", carShortest);
+        
+        // 자동차 - 회피용 (최단거리 기반)
+        CustomModel carAvoid = new CustomModel();
+        carAvoid.setDistanceInfluence(100.0);
+        carAvoid.setHeadingPenalty(200d); // 자동차는 보행자보다 방향 변경 페널티 낮게
+        customModelTemplates.put("car_sh_aviod", carAvoid);
         
         log.info("CustomModel 템플릿 {} 개 초기화 완료", customModelTemplates.size());
     }
@@ -138,6 +151,14 @@ public class GraphHopperinit {
             .setCustomModel(copyCustomModel(customModelTemplates.get("foot_fastest")));
     }
 
+    private Profile createFootShProfile_aviod() {
+        return new Profile("foot_sh_aviod")
+            .setVehicle("foot")
+            .setWeighting("custom")
+            .setTurnCosts(false)
+            .setCustomModel(copyCustomModel(customModelTemplates.get("foot_sh_aviod"))); // 수정
+    }
+
     /**
      * 자동차 프로필들
      */
@@ -164,16 +185,52 @@ public class GraphHopperinit {
             .setTurnCosts(false)
             .setCustomModel(copyCustomModel(customModelTemplates.get("car_shortest")));
     }
+
+    private Profile createCarShProfile_aviod() {
+        return new Profile("car_sh_aviod")
+            .setVehicle("car")
+            .setWeighting("custom")
+            .setTurnCosts(false)
+            .setCustomModel(copyCustomModel(customModelTemplates.get("car_sh_aviod"))); // 수정
+    }
     
-    /**
-     * CustomModel 복사 메서드
-     */
-    private CustomModel copyCustomModel(CustomModel original) {
-        CustomModel copy = new CustomModel();
-        copy.setDistanceInfluence(original.getDistanceInfluence());
-        // 필요시 다른 속성들도 복사
-        return copy;
+    public CustomModel getCustomModelTemplate(String templateName) {
+        CustomModel template = customModelTemplates.get(templateName);
+        return template != null ? copyCustomModel(template) : null;
     }
 
-
+    /**
+     * CustomModel 완전 복사 메서드
+     */
+    private CustomModel copyCustomModel(CustomModel original) {
+        if (original == null) {
+            return null;
+        }
+        
+        CustomModel copy = new CustomModel();
+        
+        // 기본 속성들 복사
+        if (original.getDistanceInfluence() != null) {
+            copy.setDistanceInfluence(original.getDistanceInfluence());
+        }
+        if (original.getHeadingPenalty() != null) {
+            copy.setHeadingPenalty(original.getHeadingPenalty());
+        }
+        
+        // Areas 복사 (회피 구역 정보)
+        if (original.getAreas() != null) {
+            copy.setAreas(original.getAreas());
+        }
+        
+        // Speed와 Priority 규칙들 복사
+        if (!original.getSpeed().isEmpty()) {
+            original.getSpeed().forEach(copy::addToSpeed);
+        }
+        if (!original.getPriority().isEmpty()) {
+            original.getPriority().forEach(copy::addToPriority);
+        }
+        
+        return copy;
+    }
+        
 }
