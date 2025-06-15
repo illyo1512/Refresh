@@ -15,6 +15,13 @@ import ReviewListPage from '../views/ReviewListPage.vue'
 import WriteReviewPage from '../views/WriteReviewPage.vue'
 import ColourPage from '../views/ColourPage.vue'
 import SettingsPage from '../views/SettingsPage.vue'
+import MyPage from '../views/MyPage.vue'
+import WritePostPage from '../views/WritePostPage.vue'
+import EditProfilePage from '../views/EditProfilePage.vue'
+import EditPostPage from '../views/EditPostPage.vue'
+import AdminPage from '../views/AdminPage.vue'
+import AdminDMPage from '../views/AdminDMPage.vue'
+import ReportListPage from '../views/ReportListPage.vue'
 
 const routes = [
   { path: '/', name: 'MainPage', component: MainPage },
@@ -32,7 +39,15 @@ const routes = [
   { path: '/reviewlist', name: 'ReviewListPage', component: ReviewListPage },
   { path: '/writereview', name: 'WriteReviewPage', component: WriteReviewPage },
   { path: '/colour', name: 'ColourPage', component: ColourPage },
-  { path: '/settings', name: 'SettingsPage', component: SettingsPage }
+  { path: '/settings', name: 'SettingsPage', component: SettingsPage },
+  { path: '/mypage', name: 'MyPage', component: MyPage },
+  { path: '/writepost', name: 'WritePostPage', component: WritePostPage },
+  { path: '/editprofile', name: 'EditProfilePage', component: EditProfilePage },
+  { path: '/editpost/:id', name: 'EditPostPage', component: EditPostPage, props: true },
+  { path: '/admin', name: 'AdminPage', component: AdminPage },
+  { path: '/admindm', name: 'AdminDMPage', component: AdminDMPage },
+  { path: '/reportlist', name: 'ReportListPage', component: ReportListPage }
+  
 ]
 
 const router = createRouter({
