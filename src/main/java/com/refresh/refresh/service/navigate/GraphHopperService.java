@@ -1,224 +1,210 @@
 package com.refresh.refresh.service.navigate;
 
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopper;
+import com.graphhopper.*;
 import com.graphhopper.util.shapes.GHPoint;
-import com.graphhopper.ResponsePath;
-import com.graphhopper.util.Instruction;
-import com.graphhopper.util.InstructionList;
-import com.graphhopper.util.PointList;
-import com.graphhopper.util.Translation;
-import com.graphhopper.util.TranslationMap;
-import org.springframework.stereotype.Service;
+import com.graphhopper.util.*;
 import lombok.extern.slf4j.Slf4j;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.stereotype.Service;
 
-import java.util.Locale;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 
 /**
- * GraphHopper 8.0 전용 경로 계산 서비스
+ * GraphHopper 경로 계산 / 분석 서비스 (동기 방식)
+ * - GraphHopper 인스턴스는 GraphHopperinit으로부터 직접 주입받아 사용
+ * - 애플리케이션 시작 시 이미 준비된 상태이므로 상태 확인 불필요
  */
 @Slf4j
 @Service
 public class GraphHopperService {
 
-    private final GraphHopper hopper;
+    private final GraphHopper graphHopper;
     private final Translation koreanTranslation;
 
-    public GraphHopperService(GraphHopper hopper) {
-        this.hopper = hopper;
-        
-        // GraphHopper 8.0 방식의 Translation 객체 생성
-        try {
-            TranslationMap translationMap = new TranslationMap().doImport();
-            this.koreanTranslation = translationMap.getWithFallBack(Locale.KOREA);
-            log.info("GraphHopperService 초기화 완료 - 한국어 번역 지원");
-        } catch (Exception e) {
-            log.error("Translation 초기화 실패", e);
-            throw new RuntimeException("Translation 초기화 실패: " + e.getMessage(), e);
-        }
+    /**
+     * 생성자 - GraphHopper 인스턴스 주입 및 한국어 번역 초기화
+     */
+    public GraphHopperService(GraphHopper graphHopper) {
+        this.graphHopper = graphHopper;
+        this.koreanTranslation = graphHopper.getTranslationMap().getWithFallBack(Locale.KOREA);
+        log.info("[GHS] GraphHopperService 초기화 완료");
     }
 
-    /**
-     * 기본 경로 계산 (하위 호환성)
-     */
-    public ResponsePath calculatePath(double startLat, double startLng, double endLat, double endLng) {
-        log.debug("기본 경로 계산 요청 - 보행자 모드로 처리");
-        return calculateWalkingPath(startLat, startLng, endLat, endLng);
-    }
+    /* ──────────────────── 경로 계산 메서드 ───────────────────── */
 
     /**
-     * 프로필별 경로 계산
+     * 기본 경로 계산 메서드
+     * @param sLat 출발지 위도
+     * @param sLon 출발지 경도
+     * @param eLat 도착지 위도
+     * @param eLon 도착지 경도
+     * @param profile 사용할 프로필 (기본값: foot_avoid)
+     * @return 계산된 경로
      */
-    public ResponsePath calculatePath(double startLat, double startLng, double endLat, double endLng, String profile) {
-        log.debug("프로필별 경로 계산 - 프로필: {}", profile);
-
-        return switch (profile.toLowerCase()) {
-            case "foot", "walking" -> calculateWalkingPath(startLat, startLng, endLat, endLng);
-            case "car", "driving" -> calculateDrivingPath(startLat, startLng, endLat, endLng);
-            default -> {
-                log.warn("지원하지 않는 프로필: {}. 기본 보행자 모드로 처리", profile);
-                yield calculateWalkingPath(startLat, startLng, endLat, endLng);
-            }
-        };
-    }
-
-    /**
-     * 보행자 경로 계산
-     */
-    public ResponsePath calculateWalkingPath(double startLat, double startLng, double endLat, double endLng) {
-        log.debug("보행자 경로 계산 시작 - 시작점: [{}, {}], 도착점: [{}, {}]", 
-                 startLat, startLng, endLat, endLng);
-
-        GHPoint start = new GHPoint(startLat, startLng);
-        GHPoint end = new GHPoint(endLat, endLng);
-
-        GHRequest request = new GHRequest(start, end)
-                .setProfile("foot")
-                .setLocale(Locale.KOREA);
+    public ResponsePath calculatePath(
+            double sLat, double sLon, double eLat, double eLon, String profile) {
 
         try {
-            GHResponse response = hopper.route(request);
+            GHRequest req = new GHRequest(sLat, sLon, eLat, eLon)
+                    .setProfile(profile == null ? "foot_avoid" : profile)
+                    .setLocale(Locale.KOREA);
 
-            if (response.hasErrors()) {
-                String errorMsg = "보행자 경로 계산 오류: " + response.getErrors().toString();
-                log.error(errorMsg);
-                throw new RuntimeException(errorMsg);
+            GHResponse resp = graphHopper.route(req);
+            if (resp.hasErrors()) {
+                log.error("[GHS] 경로 계산 오류 [{}]: {}", profile, resp.getErrors());
+                throw new RuntimeException("경로 계산 실패: " + resp.getErrors().toString());
             }
-
-            if (response.getAll().isEmpty()) {
-                throw new RuntimeException("보행자 경로를 찾을 수 없습니다.");
-            }
-
-            ResponsePath bestPath = response.getBest();
-            log.info("보행자 경로 계산 완료 - 거리: {}m, 예상 시간: {}분", 
-                    bestPath.getDistance(), bestPath.getTime() / 60000);
             
-            return bestPath;
-
-        } catch (Exception e) {
-            log.error("보행자 경로 계산 중 예외 발생", e);
-            throw new RuntimeException("경로 계산 실패: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 자동차 경로 계산
-     */
-    public ResponsePath calculateDrivingPath(double startLat, double startLng, double endLat, double endLng) {
-        log.debug("자동차 경로 계산 시작 - 시작점: [{}, {}], 도착점: [{}, {}]", 
-                 startLat, startLng, endLat, endLng);
-
-        GHPoint start = new GHPoint(startLat, startLng);
-        GHPoint end = new GHPoint(endLat, endLng);
-
-        GHRequest request = new GHRequest(start, end)
-                .setProfile("car")
-                .setLocale(Locale.KOREA);
-
-        try {
-            GHResponse response = hopper.route(request);
-
-            if (response.hasErrors()) {
-                String errorMsg = "자동차 경로 계산 오류: " + response.getErrors().toString();
-                log.error(errorMsg);
-                throw new RuntimeException(errorMsg);
-            }
-
-            if (response.getAll().isEmpty()) {
-                throw new RuntimeException("자동차 경로를 찾을 수 없습니다.");
-            }
-
-            ResponsePath bestPath = response.getBest();
-            log.info("자동차 경로 계산 완료 - 거리: {}m, 예상 시간: {}분", 
-                    bestPath.getDistance(), bestPath.getTime() / 60000);
+            log.debug("[GHS] 경로 계산 성공 [{}]: {}m, {}ms", profile, 
+                     resp.getBest().getDistance(), resp.getBest().getTime());
+            return resp.getBest();
             
-            return bestPath;
-
         } catch (Exception e) {
-            log.error("자동차 경로 계산 중 예외 발생", e);
-            throw new RuntimeException("경로 계산 실패: " + e.getMessage(), e);
+            log.error("[GHS] 경로 계산 중 예외 [{}]: {}", profile, e.getMessage());
+            throw new RuntimeException("경로 계산 중 오류 발생", e);
         }
     }
 
     /**
-     * 경로 분석 결과 추출 (Translation 객체 사용)
+     * 보행자 회피 경로 계산
+     */
+    public ResponsePath calculateWalkingPath(double sLat, double sLon,
+                                             double eLat, double eLon) {
+        return calculatePath(sLat, sLon, eLat, eLon, "foot_avoid");
+    }
+
+    /**
+     * 자동차 회피 경로 계산
+     */
+    public ResponsePath calculateDrivingPath(double sLat, double sLon,
+                                             double eLat, double eLon) {
+        return calculatePath(sLat, sLon, eLat, eLon, "car_avoid");
+    }
+
+    /**
+     * 보행자 최단 경로 계산
+     */
+    public ResponsePath calculateFastestWalkingPath(double sLat, double sLon,
+                                                    double eLat, double eLon) {
+        return calculatePath(sLat, sLon, eLat, eLon, "foot_fastest");
+    }
+
+    /**
+     * 자동차 최단 경로 계산
+     */
+    public ResponsePath calculateFastestDrivingPath(double sLat, double sLon,
+                                                    double eLat, double eLon) {
+        return calculatePath(sLat, sLon, eLat, eLon, "car_fastest");
+    }
+
+    /* ──────────────────── 분석 & 헬스체크 ───────────────────── */
+
+    /**
+     * 경로 분석 - 상세 정보 추출
+     * @param path 분석할 경로
+     * @return 분석 결과
      */
     public RouteAnalysis analyzeRoute(ResponsePath path) {
-        if (path == null) {
-            throw new IllegalArgumentException("분석할 경로가 null입니다.");
-        }
+        Objects.requireNonNull(path, "분석할 경로가 null입니다");
 
-        double distanceInMeters = path.getDistance();
-        long timeInMillis = path.getTime();
-        double distanceInKm = distanceInMeters / 1000.0;
-        int timeInMinutes = (int) (timeInMillis / 60000);
-
-        // 좌표 리스트 추출
-        PointList pointList = path.getPoints();
-        List<RoutePoint> coordinates = new ArrayList<>();
-        
-        for (int i = 0; i < pointList.size(); i++) {
-            coordinates.add(RoutePoint.builder()
-                .latitude(pointList.getLat(i))
-                .longitude(pointList.getLon(i))
-                .elevation(pointList.getEle(i))
-                .build());
-        }
-
-        // 안내 정보 추출 (GraphHopper 8.0 올바른 방식)
-        InstructionList instructions = path.getInstructions();
-        List<String> directions = new ArrayList<>();
-        
-        for (Instruction instruction : instructions) {
-            // ✅ Translation 객체 사용 (8.0에서 올바른 방식)
-            String text = instruction.getTurnDescription(koreanTranslation);
-            if (text != null && !text.trim().isEmpty()) {
-                directions.add(text);
+        try {
+            // 좌표 정보 추출
+            PointList pts = path.getPoints();
+            List<RoutePoint> coords = new ArrayList<>(pts.size());
+            for (int i = 0; i < pts.size(); i++) {
+                coords.add(RoutePoint.builder()
+                        .latitude(pts.getLat(i))
+                        .longitude(pts.getLon(i))
+                        .elevation(pts.getEle(i))
+                        .build());
             }
+
+            // 길찾기 안내 정보 추출
+            InstructionList ins = path.getInstructions();
+            List<String> directions = new ArrayList<>(ins.size());
+            for (Instruction in : ins) {
+                String txt = in.getTurnDescription(koreanTranslation);
+                if (txt != null && !txt.isBlank()) {
+                    directions.add(txt);
+                }
+            }
+
+            RouteAnalysis analysis = RouteAnalysis.builder()
+                    .distanceInMeters(path.getDistance())
+                    .distanceInKm(Math.round(path.getDistance() / 1000.0 * 100.0) / 100.0)
+                    .timeInMillis(path.getTime())
+                    .timeInMinutes((int) Math.round(path.getTime() / 60000.0))
+                    .coordinates(coords)
+                    .directions(directions)
+                    .totalPoints(coords.size())
+                    .build();
+
+            log.debug("[GHS] 경로 분석 완료: {}km, {}분, {}개 좌표, {}개 안내", 
+                     analysis.getDistanceInKm(), analysis.getTimeInMinutes(), 
+                     analysis.getTotalPoints(), analysis.getDirections().size());
+
+            return analysis;
+            
+        } catch (Exception e) {
+            log.error("[GHS] 경로 분석 중 오류", e);
+            throw new RuntimeException("경로 분석 실패", e);
         }
-
-        log.debug("경로 분석 완료 - 거리: {}km, 시간: {}분, 좌표: {}개, 안내: {}개", 
-                 distanceInKm, timeInMinutes, coordinates.size(), directions.size());
-
-        return RouteAnalysis.builder()
-                .distanceInMeters(distanceInMeters)
-                .distanceInKm(distanceInKm)
-                .timeInMillis(timeInMillis)
-                .timeInMinutes(timeInMinutes)
-                .coordinates(coordinates)
-                .directions(directions)
-                .totalPoints(coordinates.size())
-                .build();
     }
 
     /**
-     * GraphHopper 상태 확인
+     * 서비스 헬스 체크 - 서울 시청 근처 1km 샘플 경로로 테스트
+     * @return 정상 동작 여부
      */
     public boolean checkHealth() {
         try {
-            GHPoint testStart = new GHPoint(37.5665, 126.9780);
-            GHPoint testEnd = new GHPoint(37.5759, 126.9768);
+            // 서울 시청 → 명동 샘플 경로 테스트
+            ResponsePath testPath = calculateWalkingPath(
+                37.5665, 126.9780,  // 서울 시청
+                37.5636, 126.9829   // 명동
+            );
             
-            GHRequest testRequest = new GHRequest(testStart, testEnd).setProfile("foot");
-            GHResponse testResponse = hopper.route(testRequest);
+            boolean healthy = testPath != null && testPath.getDistance() > 0;
+            log.debug("[GHS] 헬스 체크 결과: {}", healthy ? "정상" : "비정상");
+            return healthy;
             
-            boolean isHealthy = !testResponse.hasErrors() && !testResponse.getAll().isEmpty();
-            log.debug("GraphHopper 8.0 상태 체크: {}", isHealthy ? "정상" : "이상");
-            
-            return isHealthy;
-            
-        } catch (Exception e) {
-            log.error("GraphHopper 상태 체크 중 오류", e);
+        } catch (Exception ex) {
+            log.warn("[GHS] 헬스 체크 실패", ex);
             return false;
         }
     }
 
-    @Builder
+    /**
+     * 사용 가능한 프로필 목록 조회
+     * @return 프로필 이름 목록
+     */
+    public List<String> getAvailableProfiles() {
+        try {
+            return graphHopper.getProfiles()
+                    .stream()
+                    .map(profile -> profile.getName())
+                    .sorted()
+                    .toList();
+        } catch (Exception e) {
+            log.error("[GHS] 프로필 목록 조회 실패", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * GraphHopper 인스턴스 직접 접근 (고급 사용자용)
+     * @return GraphHopper 인스턴스
+     */
+    public GraphHopper getGraphHopper() {
+        return graphHopper;
+    }
+
+    /* ─────────────── DTO 내장 클래스 ─────────────── */
+
+    /**
+     * 경로 분석 결과 DTO
+     */
+    @Builder 
     @Getter
     public static class RouteAnalysis {
         private final double distanceInMeters;
@@ -230,7 +216,10 @@ public class GraphHopperService {
         private final int totalPoints;
     }
 
-    @Builder
+    /**
+     * 경로 좌표점 DTO
+     */
+    @Builder 
     @Getter
     public static class RoutePoint {
         private final double latitude;

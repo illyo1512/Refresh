@@ -40,6 +40,8 @@ public class GraphHopperinit {
         log.info("GraphHopper 8.0 초기화 시작");
         GraphHopper hopper = new GraphHopper();
         try {
+            hopper.setMinNetworkSize(0);
+
             hopper.setOSMFile("data/south-korea-latest.osm.pbf");
             hopper.setGraphHopperLocation("data/graph-cache");
 
