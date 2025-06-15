@@ -1,24 +1,23 @@
 package com.refresh.refresh.controller;
 
 import com.graphhopper.ResponsePath;
-import com.graphhopper.util.PointList;
+import com.refresh.refresh.entity.DangerRecord;
 import com.refresh.refresh.service.navigate.GraphHopperService;
+import com.refresh.refresh.service.route_judge.DangerPolygonLoader;
+import com.refresh.refresh.service.route_judge.DangerZoneBboxChecker;
+import com.refresh.refresh.service.route_judge.RouteIntersectionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Polygon;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.locationtech.jts.geom.LineString;
+import java.util.stream.Collectors;
 
 import java.util.*;
 
 /**
- * GraphHopper 기반 네비게이션 컨트롤러 (동기 방식)
- * 
- * 사용 가능한 프로필:
- * - foot_fastest: 보행자 최단거리 (위험지역 고려 안함)
- * - foot_avoid: 보행자 위험지역 회피 (거리보다 안전성 우선)
- * - car_fastest: 자동차 최단거리 (위험지역 고려 안함)
- * - car_avoid: 자동차 위험지역 회피 (거리보다 안전성 우선)
+ * GraphHopper 기반 위험구역 고려 네비게이션 컨트롤러
  */
 @Slf4j
 @RestController
@@ -27,118 +26,22 @@ import java.util.*;
 @RequiredArgsConstructor
 public class NavigationController {
 
-    private final GraphHopperService service;
+    private final GraphHopperService graphHopperService;
+    private final DangerZoneBboxChecker dangerZoneBboxChecker;
+    private final DangerPolygonLoader dangerPolygonLoader;
+    private final RouteIntersectionChecker routeIntersectionChecker;
+
+    @Value("${app.geojson.base-dir:content/geojson}")
+    private String geojsonBaseDir;
+
+    @Value("${app.geojson.city-name:광주광역시}")
+    private String cityName;
 
     /**
-     * 사용 가능한 프로필 목록
+     * 위험구역을 고려한 경로 계산
      */
-    public static final Map<String, String> AVAILABLE_PROFILES = Map.of(
-        "foot_fastest", "보행자 최단거리",
-        "foot_avoid", "보행자 위험지역 회피",
-        "car_fastest", "자동차 최단거리", 
-        "car_avoid", "자동차 위험지역 회피"
-    );
-
-    /* ───────────────────────── 기본 경로 계산 ───────────────────────── */
-    @PostMapping("/route")
-    public ResponseEntity<?> route(
-            @RequestParam double startLat,
-            @RequestParam double startLng,
-            @RequestParam double endLat,
-            @RequestParam double endLng,
-            @RequestParam(defaultValue = "foot_avoid") String profile) {
-
-        // 프로필 유효성 검사
-        if (!AVAILABLE_PROFILES.containsKey(profile)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false,
-                                 "error", "지원되지 않는 프로필: " + profile,
-                                 "availableProfiles", AVAILABLE_PROFILES));
-        }
-
-        try {
-            ResponsePath path = service.calculatePath(startLat, startLng, endLat, endLng, profile);
-            
-            PointList pts = path.getPoints();
-            LineString line = pts.toLineString(false);
-            String lineWkt = line.toText();
-
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("success", true);
-            result.put("distance", path.getDistance());
-            result.put("time", path.getTime());
-            result.put("wkt", lineWkt);
-            result.put("profile", profile);
-            result.put("profileDescription", AVAILABLE_PROFILES.get(profile));
-            result.put("distanceKm", Math.round(path.getDistance() / 1000.0 * 100.0) / 100.0);
-            result.put("timeMinutes", Math.round(path.getTime() / 60000.0));
-
-            return ResponseEntity.ok(result);
-
-        } catch (Exception e) {
-            log.error("경로 계산 중 예외 [{}]", profile, e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
-        }
-    }
-
-    /* ───────────────────────── 고급 경로 분석 ───────────────────────── */
-    @PostMapping("/analyze")
-    public ResponseEntity<?> analyzeRoute(
-            @RequestParam double startLat,
-            @RequestParam double startLng,
-            @RequestParam double endLat,
-            @RequestParam double endLng,
-            @RequestParam(defaultValue = "foot_avoid") String profile) {
-
-        // 프로필 유효성 검사
-        if (!AVAILABLE_PROFILES.containsKey(profile)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false,
-                                 "error", "지원되지 않는 프로필: " + profile,
-                                 "availableProfiles", AVAILABLE_PROFILES));
-        }
-
-        try {
-            ResponsePath path = service.calculatePath(startLat, startLng, endLat, endLng, profile);
-            GraphHopperService.RouteAnalysis analysis = service.analyzeRoute(path);
-            
-            PointList pts = path.getPoints();
-            LineString line = pts.toLineString(false);
-            String lineWkt = line.toText();
-
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("success", true);
-            result.put("profile", profile);
-            result.put("profileDescription", AVAILABLE_PROFILES.get(profile));
-            result.put("wkt", lineWkt);
-            
-            // 기본 정보
-            result.put("distance", analysis.getDistanceInMeters());
-            result.put("distanceKm", analysis.getDistanceInKm());
-            result.put("time", analysis.getTimeInMillis());
-            result.put("timeMinutes", analysis.getTimeInMinutes());
-            result.put("totalPoints", analysis.getTotalPoints());
-            
-            // 좌표 정보
-            result.put("coordinates", analysis.getCoordinates());
-            
-            // 길찾기 안내
-            result.put("directions", analysis.getDirections());
-            result.put("directionsCount", analysis.getDirections().size());
-
-            return ResponseEntity.ok(result);
-
-        } catch (Exception e) {
-            log.error("경로 분석 중 예외 [{}]", profile, e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
-        }
-    }
-
-    /* ───────────────────────── 경로 비교 ───────────────────────── */
-    @PostMapping("/compare")
-    public ResponseEntity<?> compareRoutes(
+    @PostMapping("/route-with-danger-check")
+    public ResponseEntity<?> routeWithDangerCheck(
             @RequestParam double startLat,
             @RequestParam double startLng,
             @RequestParam double endLat,
@@ -154,175 +57,178 @@ public class NavigationController {
         }
 
         try {
+            // 1. 기본 경로 생성 (fastest 프로필 사용)
             String fastestProfile = transportMode.equals("car") ? "car_fastest" : "foot_fastest";
-            String avoidProfile = transportMode.equals("car") ? "car_avoid" : "foot_avoid";
+            ResponsePath basicPath = graphHopperService.calculatePath(startLat, startLng, endLat, endLng, fastestProfile);
+            GraphHopperService.RouteAnalysis basicAnalysis = graphHopperService.analyzeRoute(basicPath);
 
-            // 두 경로 계산
-            ResponsePath fastestPath = service.calculatePath(startLat, startLng, endLat, endLng, fastestProfile);
-            ResponsePath avoidPath = service.calculatePath(startLat, startLng, endLat, endLng, avoidProfile);
-
-            // 분석
-            GraphHopperService.RouteAnalysis fastestAnalysis = service.analyzeRoute(fastestPath);
-            GraphHopperService.RouteAnalysis avoidAnalysis = service.analyzeRoute(avoidPath);
+            // 2. 위험구역 통과 여부 계산
+            boolean passesThroughDangerZone = checkDangerZonePassage(basicPath);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("transportMode", transportMode);
             result.put("transportModeDescription", transportMode.equals("car") ? "자동차" : "보행자");
 
-            // 최단 경로 정보
-            Map<String, Object> fastestInfo = createRouteInfo(fastestPath, fastestAnalysis, fastestProfile, "최단 경로");
-            result.put("fastestRoute", fastestInfo);
+            // 기본 경로 정보
+            Map<String, Object> basicRouteInfo = createRouteInfo(basicPath, basicAnalysis, fastestProfile, "기본 경로");
+            result.put("basicRoute", basicRouteInfo);
 
-            // 회피 경로 정보
-            Map<String, Object> avoidInfo = createRouteInfo(avoidPath, avoidAnalysis, avoidProfile, "회피 경로");
-            result.put("avoidRoute", avoidInfo);
+            // 위험구역 통과 여부
+            result.put("passesThroughDangerZone", passesThroughDangerZone);
 
-            // 비교 정보
-            Map<String, Object> comparison = new LinkedHashMap<>();
-            comparison.put("distanceDifference", avoidAnalysis.getDistanceInMeters() - fastestAnalysis.getDistanceInMeters());
-            comparison.put("distanceDifferenceKm", Math.round((avoidAnalysis.getDistanceInKm() - fastestAnalysis.getDistanceInKm()) * 100.0) / 100.0);
-            comparison.put("timeDifference", avoidAnalysis.getTimeInMillis() - fastestAnalysis.getTimeInMillis());
-            comparison.put("timeDifferenceMinutes", avoidAnalysis.getTimeInMinutes() - fastestAnalysis.getTimeInMinutes());
-            comparison.put("isAvoidLonger", avoidAnalysis.getDistanceInMeters() > fastestAnalysis.getDistanceInMeters());
-            comparison.put("isAvoidSlower", avoidAnalysis.getTimeInMillis() > fastestAnalysis.getTimeInMillis());
-            
-            // 퍼센트 차이 계산
-            double distancePercent = fastestAnalysis.getDistanceInMeters() > 0 ? 
-                ((avoidAnalysis.getDistanceInMeters() - fastestAnalysis.getDistanceInMeters()) / fastestAnalysis.getDistanceInMeters()) * 100 : 0;
-            double timePercent = fastestAnalysis.getTimeInMillis() > 0 ? 
-                ((avoidAnalysis.getTimeInMillis() - fastestAnalysis.getTimeInMillis()) / (double)fastestAnalysis.getTimeInMillis()) * 100 : 0;
-            
-            comparison.put("distancePercentDifference", Math.round(distancePercent * 10.0) / 10.0);
-            comparison.put("timePercentDifference", Math.round(timePercent * 10.0) / 10.0);
-            
-            result.put("comparison", comparison);
+            // 3. 위험구역을 통과할 경우 회피 경로 생성
+            if (passesThroughDangerZone) {
+                String avoidProfile = transportMode.equals("car") ? "car_avoid" : "foot_avoid";
+                ResponsePath avoidPath = graphHopperService.calculatePath(startLat, startLng, endLat, endLng, avoidProfile);
+                GraphHopperService.RouteAnalysis avoidAnalysis = graphHopperService.analyzeRoute(avoidPath);
+
+                // 회피 경로 정보
+                Map<String, Object> avoidRouteInfo = createRouteInfo(avoidPath, avoidAnalysis, avoidProfile, "회피 경로");
+                result.put("avoidRoute", avoidRouteInfo);
+
+                // 경로 비교 정보
+                Map<String, Object> comparison = createRouteComparison(basicAnalysis, avoidAnalysis);
+                result.put("routeComparison", comparison);
+                result.put("recommendedRoute", "avoid");
+            } else {
+                result.put("avoidRoute", null);
+                result.put("routeComparison", null);
+                result.put("recommendedRoute", "basic");
+            }
+
+            // 4. 위험구역 상세 정보
+            Map<String, Object> dangerZoneInfo = getDangerZoneInfo(basicPath);
+            result.put("dangerZoneInfo", dangerZoneInfo);
 
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("경로 비교 중 예외 [{}]", transportMode, e);
+            log.error("위험구역 고려 경로 계산 중 예외 [{}]", transportMode, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("success", false, "error", e.getMessage()));
         }
     }
 
-    /* ───────────────────────── 편의 메서드들 ───────────────────────── */
-    @PostMapping("/walking")
-    public ResponseEntity<?> calculateWalkingRoute(
-            @RequestParam double startLat,
-            @RequestParam double startLng,
-            @RequestParam double endLat,
-            @RequestParam double endLng) {
-
+    /**
+     * 경로가 위험구역을 통과하는지 확인
+     */
+    private boolean checkDangerZonePassage(ResponsePath path) {
         try {
-            ResponsePath path = service.calculateWalkingPath(startLat, startLng, endLat, endLng);
-            GraphHopperService.RouteAnalysis analysis = service.analyzeRoute(path);
+            // 1. bbox 교차 확인으로 후보 DangerRecord들 조회
+            List<DangerRecord> intersectingRecords = dangerZoneBboxChecker.getIntersectingDangerRecords(path);
             
-            Map<String, Object> result = createRouteInfo(path, analysis, "foot_avoid", "보행자 회피 경로");
-            result.put("success", true);
+            log.info("bbox 교차 확인 결과: {}개의 DangerRecord 발견", intersectingRecords.size());
+            
+            if (intersectingRecords.isEmpty()) {
+                log.info("bbox 교차하는 위험구역이 없음");
+                return false; // bbox 교차하는 위험구역이 없음
+            }
 
-            return ResponseEntity.ok(result);
+            // 2. 각 DangerRecord의 폴리곤과 정확한 교차 여부 확인
+            for (DangerRecord record : intersectingRecords) {
+                log.info("DangerRecord 처리 중: recordId={}, detailId={}, path={}", 
+                    record.getRecordId(), record.getDetailId(), record.getDangerJsonPath());
+                
+                try {
+                    List<Polygon> polygons = dangerPolygonLoader.loadPolygonsFromRecord(record, geojsonBaseDir, cityName);
+                    log.info("폴리곤 로드 성공: {}개의 폴리곤", polygons.size());
+                    
+                    if (polygons.isEmpty()) {
+                        log.warn("폴리곤이 비어있음: {}", record.getDangerJsonPath());
+                        continue;
+                    }
+                    
+                    boolean intersects = routeIntersectionChecker.isRouteIntersectingDangerZones(path, polygons);
+                    log.info("교차 여부 확인 결과: {}", intersects);
+                    
+                    if (intersects) {
+                        log.info("위험구역 통과 확인됨: recordId={}", record.getRecordId());
+                        return true; // 하나라도 교차하면 위험구역 통과
+                    }
+                } catch (Exception e) {
+                    log.error("DangerRecord 처리 중 오류: recordId={}, error={}", record.getRecordId(), e.getMessage());
+                }
+            }
 
+            log.info("모든 폴리곤과 교차하지 않음");
+            return false; // 모든 폴리곤과 교차하지 않음
+            
         } catch (Exception e) {
-            log.error("보행자 경로 계산 중 예외", e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+            log.error("위험구역 통과 여부 확인 중 오류", e);
+            return false; // 오류 시 안전하게 처리
         }
     }
 
-    @PostMapping("/driving")
-    public ResponseEntity<?> calculateDrivingRoute(
-            @RequestParam double startLat,
-            @RequestParam double startLng,
-            @RequestParam double endLat,
-            @RequestParam double endLng) {
-
-        try {
-            ResponsePath path = service.calculateDrivingPath(startLat, startLng, endLat, endLng);
-            GraphHopperService.RouteAnalysis analysis = service.analyzeRoute(path);
-            
-            Map<String, Object> result = createRouteInfo(path, analysis, "car_avoid", "자동차 회피 경로");
-            result.put("success", true);
-
-            return ResponseEntity.ok(result);
-
-        } catch (Exception e) {
-            log.error("자동차 경로 계산 중 예외", e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
-        }
-    }
-
-    /* ───────────────────────── 정보 조회 API ───────────────────────── */
-    @GetMapping("/profiles")
-    public ResponseEntity<?> getAvailableProfiles() {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("success", true);
-        result.put("profiles", AVAILABLE_PROFILES);
-        result.put("profileCount", AVAILABLE_PROFILES.size());
-        
-        // 실제 GraphHopper에서 로드된 프로필과 비교
-        try {
-            List<String> actualProfiles = service.getAvailableProfiles();
-            result.put("actualProfiles", actualProfiles);
-            result.put("actualProfileCount", actualProfiles.size());
-        } catch (Exception e) {
-            log.warn("실제 프로필 목록 조회 실패", e);
-        }
-        
-        return ResponseEntity.ok(result);
-    }
-
-    /* ───────────────────────── 헬스 체크 ───────────────────────── */
-    @GetMapping("/health")
-    public ResponseEntity<?> healthCheck() {
-        Map<String, Object> result = new LinkedHashMap<>();
-        
-        try {
-            boolean healthy = service.checkHealth();
-            List<String> profiles = service.getAvailableProfiles();
-            
-            result.put("status", healthy ? "UP" : "DOWN");
-            result.put("serviceHealthy", healthy);
-            result.put("availableProfiles", profiles);
-            result.put("profileCount", profiles.size());
-            result.put("configuredProfiles", AVAILABLE_PROFILES);
-            result.put("configuredProfileCount", AVAILABLE_PROFILES.size());
-            result.put("timestamp", System.currentTimeMillis());
-            result.put("message", healthy ? "모든 시스템 정상" : "시스템 점검 필요");
-            
-        } catch (Exception e) {
-            log.error("헬스 체크 중 오류", e);
-            result.put("status", "ERROR");
-            result.put("serviceHealthy", false);
-            result.put("error", e.getMessage());
-            result.put("timestamp", System.currentTimeMillis());
-            result.put("message", "시스템 오류 발생");
-        }
-        
-        return ResponseEntity.ok(result);
-    }
-
-    /* ───────────────────────── 헬퍼 메서드 ───────────────────────── */
-    private Map<String, Object> createRouteInfo(ResponsePath path, GraphHopperService.RouteAnalysis analysis, 
-                                                String profile, String description) {
-        PointList pts = path.getPoints();
-        LineString line = pts.toLineString(false);
-        String lineWkt = line.toText();
-
+    /**
+     * 위험구역 상세 정보 조회
+     */
+    private Map<String, Object> getDangerZoneInfo(ResponsePath path) {
         Map<String, Object> info = new LinkedHashMap<>();
-        info.put("description", description);
-        info.put("profile", profile);
-        info.put("profileDescription", AVAILABLE_PROFILES.get(profile));
-        info.put("distance", analysis.getDistanceInMeters());
-        info.put("distanceKm", analysis.getDistanceInKm());
-        info.put("time", analysis.getTimeInMillis());
-        info.put("timeMinutes", analysis.getTimeInMinutes());
-        info.put("totalPoints", analysis.getTotalPoints());
-        info.put("directionsCount", analysis.getDirections().size());
-        info.put("wkt", lineWkt);
+        
+        try {
+            List<DangerRecord> intersectingRecords = dangerZoneBboxChecker.getIntersectingDangerRecords(path);
+            
+            info.put("dangerZoneCount", intersectingRecords.size());
+            info.put("dangerZones", intersectingRecords.stream()
+                    .map(record -> Map.of(
+                            "recordId", record.getRecordId(),
+                            "detailId", record.getDetailId(),
+                            "dangerJsonPath", record.getDangerJsonPath()
+                    ))
+                    .collect(Collectors.toList()));
+            
+            // 위험도 레벨 계산
+            String riskLevel = intersectingRecords.isEmpty() ? "LOW" : 
+                              intersectingRecords.size() > 2 ? "HIGH" : "MEDIUM";
+            info.put("riskLevel", riskLevel);
+            
+        } catch (Exception e) {
+            log.error("위험구역 정보 조회 중 오류", e);
+            info.put("error", "위험구역 정보 조회 실패");
+            info.put("dangerZoneCount", 0);
+            info.put("riskLevel", "LOW");
+        }
         
         return info;
+    }
+
+    /**
+     * 경로 정보 생성
+     */
+    private Map<String, Object> createRouteInfo(ResponsePath path, GraphHopperService.RouteAnalysis analysis, 
+                                               String profile, String description) {
+        Map<String, Object> routeInfo = new LinkedHashMap<>();
+        routeInfo.put("profile", profile);
+        routeInfo.put("description", description);
+        routeInfo.put("distance", analysis.getDistanceInMeters());
+        routeInfo.put("distanceKm", analysis.getDistanceInKm());
+        routeInfo.put("time", analysis.getTimeInMillis());
+        routeInfo.put("timeMinutes", analysis.getTimeInMinutes());
+        routeInfo.put("coordinates", path.getPoints().toLineString(false).getCoordinates());
+        return routeInfo;
+    }
+
+    /**
+     * 경로 비교 정보 생성
+     */
+    private Map<String, Object> createRouteComparison(GraphHopperService.RouteAnalysis basic, 
+                                                     GraphHopperService.RouteAnalysis avoid) {
+        Map<String, Object> comparison = new LinkedHashMap<>();
+        comparison.put("distanceDifference", avoid.getDistanceInMeters() - basic.getDistanceInMeters());
+        comparison.put("distanceDifferenceKm", Math.round((avoid.getDistanceInKm() - basic.getDistanceInKm()) * 100.0) / 100.0);
+        comparison.put("timeDifference", avoid.getTimeInMillis() - basic.getTimeInMillis());
+        comparison.put("timeDifferenceMinutes", avoid.getTimeInMinutes() - basic.getTimeInMinutes());
+
+        // 퍼센트 차이 계산
+        double distancePercent = basic.getDistanceInMeters() > 0 ? 
+            ((avoid.getDistanceInMeters() - basic.getDistanceInMeters()) / basic.getDistanceInMeters()) * 100 : 0;
+        double timePercent = basic.getTimeInMillis() > 0 ? 
+            ((avoid.getTimeInMillis() - basic.getTimeInMillis()) / (double)basic.getTimeInMillis()) * 100 : 0;
+        
+        comparison.put("distancePercentDifference", Math.round(distancePercent * 10.0) / 10.0);
+        comparison.put("timePercentDifference", Math.round(timePercent * 10.0) / 10.0);
+        
+        return comparison;
     }
 }

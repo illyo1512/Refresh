@@ -1,19 +1,21 @@
 package com.refresh.refresh.service.route_judge;
 
+import com.graphhopper.ResponsePath;
+import com.graphhopper.util.PointList;
 import com.refresh.refresh.entity.DangerRecord;
+import com.refresh.refresh.repository.DangerRecordRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 경로와 DB의 위험지역 bbox 간의 교차 여부를 판단하는 유틸리티 클래스
- *
- * - 경로를 일정 길이로 분할한 후, 각 구간의 bbox를 계산하여 교차 여부를 정밀히 확인함
- * - 단순 bbox 1개를 사용하는 것보다 false positive가 적고 정밀도 높음
- */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class DangerZoneBboxChecker {
+
+    private final DangerRecordRepository dangerRecordRepository;
 
     /**
      * 경로를 일정 단위(구간 개수)로 나누어 각 구간에 대해 BBOX를 계산
@@ -23,7 +25,7 @@ public class DangerZoneBboxChecker {
      * @return 각 구간의 bbox 배열 리스트 (각 요소는 [minLng, minLat, maxLng, maxLat])
      */
     public static List<double[]> computeSegBbox(List<double[]> coordinates, int segmentCount) {
-        List<double[]> bboxes = new ArrayList<>();
+        List<double[]> bboxes = new java.util.ArrayList<>();
 
         if (coordinates.size() < 2 || segmentCount < 1) return bboxes;
 
@@ -94,12 +96,72 @@ public class DangerZoneBboxChecker {
      * 위험지역들 중 경로의 세그먼트들과 겹치는 것만 필터링
      */
     public static List<DangerRecord> filterSegOverlap(List<double[]> segmentedBboxes, List<DangerRecord> records) {
-        List<DangerRecord> result = new ArrayList<>();
+        List<DangerRecord> result = new java.util.ArrayList<>();
         for (DangerRecord record : records) {
             if (isAnySegOverlap(segmentedBboxes, record)) {
                 result.add(record);
             }
         }
         return result;
+    }
+
+    /**
+     * GraphHopper ResponsePath를 받아서 위험구역 bbox와 교차하는 DangerRecord들을 반환
+     * 
+     * @param responsePath GraphHopper 경로 결과
+     * @return 교차하는 DangerRecord 리스트
+     */
+    public List<DangerRecord> getIntersectingDangerRecords(ResponsePath responsePath) {
+        PointList points = responsePath.getPoints();
+        return getIntersectingDangerRecords(points);
+    }
+
+    /**
+     * GraphHopper PointList를 받아서 위험구역 bbox와 교차하는 DangerRecord들을 반환
+     * 
+     * @param pointList GraphHopper 경로 좌표 리스트
+     * @return 교차하는 DangerRecord 리스트
+     */
+    public List<DangerRecord> getIntersectingDangerRecords(PointList pointList) {
+        // PointList에서 경로의 bbox 계산
+        double[] pathBbox = calculatePathBbox(pointList);
+        double pathMinLng = pathBbox[0];
+        double pathMinLat = pathBbox[1]; 
+        double pathMaxLng = pathBbox[2];
+        double pathMaxLat = pathBbox[3];
+
+        // Repository를 통해 교차하는 DangerRecord들 조회
+        return dangerRecordRepository.findIntersectingBbox(
+            pathMinLng, pathMinLat, pathMaxLng, pathMaxLat
+        );
+    }
+
+    /**
+     * PointList에서 경로의 bounding box를 계산
+     * 
+     * @param pointList GraphHopper PointList
+     * @return [minLng, minLat, maxLng, maxLat] 형태의 bbox
+     */
+    private double[] calculatePathBbox(PointList pointList) {
+        if (pointList.size() == 0) {
+            throw new IllegalArgumentException("PointList가 비어있습니다");
+        }
+
+        double minLng = Double.MAX_VALUE;
+        double minLat = Double.MAX_VALUE;
+        double maxLng = Double.MIN_VALUE;
+        double maxLat = Double.MIN_VALUE;
+
+        for (int i = 0; i < pointList.size(); i++) {
+            double lat = pointList.getLat(i);
+            double lng = pointList.getLon(i);
+
+            minLng = Math.min(minLng, lng);
+            minLat = Math.min(minLat, lat);
+            maxLng = Math.max(maxLng, lng);
+            maxLat = Math.max(maxLat, lat);
+        }
+
+        return new double[]{minLng, minLat, maxLng, maxLat};
     }
 }

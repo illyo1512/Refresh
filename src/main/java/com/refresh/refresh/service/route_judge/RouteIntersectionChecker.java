@@ -1,5 +1,7 @@
 package com.refresh.refresh.service.route_judge;
 
+import com.graphhopper.ResponsePath;
+import com.graphhopper.util.PointList;
 import com.refresh.refresh.dto.Route_InfoDTO;
 import org.locationtech.jts.geom.*;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,51 @@ public class RouteIntersectionChecker {
         Coordinate[] jtsCoordinates = routeCoords.stream()
                 .map(c -> new Coordinate(c.getLng(), c.getLat())) // JTS: x=lng, y=lat
                 .toArray(Coordinate[]::new);
+
+        // LineString 객체 생성
+        LineString routeLine = geometryFactory.createLineString(jtsCoordinates);
+
+        // 각 위험구역 Polygon과 intersects 연산
+        for (Polygon dangerZone : dangerZones) {
+            if (routeLine.intersects(dangerZone)) {
+                return true;
+            }
+        }
+
+        return false; // 교차하는 Polygon 없음
+    }
+
+    /**
+     * GraphHopper ResponsePath가 하나 이상의 위험구역(Polygon)과 교차하는지 판단
+     *
+     * @param responsePath GraphHopper 경로 결과
+     * @param dangerZones 위험구역 Polygon 리스트
+     * @return true = 겹침 있음, false = 안전한 경로
+     */
+    public boolean isRouteIntersectingDangerZones(ResponsePath responsePath, List<Polygon> dangerZones) {
+        PointList points = responsePath.getPoints();
+        return isRouteIntersectingDangerZones(points, dangerZones);
+    }
+
+    /**
+     * GraphHopper PointList가 하나 이상의 위험구역(Polygon)과 교차하는지 판단
+     *
+     * @param pointList GraphHopper 경로 좌표 리스트
+     * @param dangerZones 위험구역 Polygon 리스트
+     * @return true = 겹침 있음, false = 안전한 경로
+     */
+    public boolean isRouteIntersectingDangerZones(PointList pointList, List<Polygon> dangerZones) {
+        if (pointList == null || pointList.size() < 2 || dangerZones == null || dangerZones.isEmpty()) {
+            return false; // 경로가 비정상일 경우 안전하다고 간주
+        }
+
+        // PointList → JTS Coordinate로 변환
+        Coordinate[] jtsCoordinates = new Coordinate[pointList.size()];
+        for (int i = 0; i < pointList.size(); i++) {
+            double lat = pointList.getLat(i);
+            double lng = pointList.getLon(i);
+            jtsCoordinates[i] = new Coordinate(lng, lat); // JTS: x=lng, y=lat
+        }
 
         // LineString 객체 생성
         LineString routeLine = geometryFactory.createLineString(jtsCoordinates);

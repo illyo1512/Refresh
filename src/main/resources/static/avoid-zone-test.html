@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GraphHopper 네비게이션 테스트</title>
+    <title>위험구역 고려 네비게이션 테스트</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
@@ -75,36 +75,14 @@
         .btn:hover {
             background: #5a6fd8;
         }
-        .btn-success {
-            background: #28a745;
-        }
-        .btn-success:hover {
-            background: #218838;
-        }
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-        .btn-danger {
-            background: #dc3545;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        .btn-info {
-            background: #17a2b8;
-        }
-        .btn-info:hover {
-            background: #138496;
+        .btn-primary {
+            background: #667eea;
+            width: 100%;
+            font-size: 16px;
+            padding: 12px;
         }
         .btn-secondary {
             background: #6c757d;
-        }
-        .btn-secondary:hover {
-            background: #5a6268;
         }
         .result {
             margin-top: 20px;
@@ -127,11 +105,6 @@
             border: 1px solid #ffeaa7;
             color: #856404;
         }
-        .result.info {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-        }
         .route-info {
             margin: 10px 0;
             padding: 10px;
@@ -149,17 +122,16 @@
             margin: 5px 0;
             font-size: 12px;
         }
-        .preset-locations {
-            margin-bottom: 20px;
+        .danger-zone-info {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
         }
-        .preset-btn {
-            background: #6c757d;
-            font-size: 12px;
-            padding: 6px 12px;
-            margin: 2px;
-        }
-        .preset-btn:hover {
-            background: #5a6268;
+        .danger-zone-info h4 {
+            color: #856404;
+            margin: 0 0 8px 0;
         }
         .loading {
             display: none;
@@ -179,87 +151,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .status-indicator {
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .status-ready {
-            background: #28a745;
-            color: white;
-        }
-        .status-error {
-            background: #dc3545;
-            color: white;
-        }
-        .status-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-        .directions-list {
-            max-height: 200px;
-            overflow-y: auto;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .directions-list ol {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .directions-list li {
-            margin: 5px 0;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-        .api-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        .api-btn {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-        .profiles-info {
-            background: #e9ecef;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 11px;
-        }
-        .profiles-info h4 {
-            margin: 0 0 8px 0;
-            color: #495057;
-        }
-        .profiles-info ul {
-            margin: 0;
-            padding-left: 16px;
-        }
-        .profiles-info li {
-            margin: 2px 0;
-        }
-        .comparison-stats {
-            background: #fff3cd;
-            padding: 8px;
-            border-radius: 4px;
-            margin: 5px 0;
-            font-size: 11px;
-        }
-        .connection-info {
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 11px;
-            border-left: 3px solid #17a2b8;
-        }
         .emoji-marker {
             background: none;
             border: none;
@@ -271,59 +162,35 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🗺️ GraphHopper 네비게이션 테스트</h1>
-            <p>위험지역 회피 시스템</p>
+            <h1>🗺️ 위험구역 고려 네비게이션 테스트</h1>
+            <p>GraphHopper 기반 위험구역 회피 시스템</p>
         </div>
         
         <div class="content">
             <div class="sidebar">
-                <div id="statusIndicator" class="status-indicator status-ready">
-                    ✅ 시스템 준비 완료
-                </div>
-
-                <div class="connection-info">
-                    <strong>🌐 연결 정보</strong><br>
-                    API 서버: http://localhost:9806<br>
-                    상태: 대기 중
-                </div>
-
-                <div class="profiles-info">
-                    <h4>🛣️ 사용 가능한 프로필</h4>
-                    <ul>
-                        <li><strong>foot_fastest:</strong> 보행자 최단거리</li>
-                        <li><strong>foot_avoid:</strong> 보행자 위험지역 회피</li>
-                        <li><strong>car_fastest:</strong> 자동차 최단거리</li>
-                        <li><strong>car_avoid:</strong> 자동차 위험지역 회피</li>
-                    </ul>
-                </div>
-
-                <div class="preset-locations">
-                    <h3>📍 빠른 위치 설정</h3>
-                    <button class="btn preset-btn" onclick="setPreset('gangnam')">강남역 → 홍대</button>
-                    <button class="btn preset-btn" onclick="setPreset('hongdae')">홍대 → 명동</button>
-                    <button class="btn preset-btn" onclick="setPreset('myeongdong')">명동 → 이태원</button>
-                    <button class="btn preset-btn" onclick="setPreset('itaewon')">이태원 → 강남</button>
+                <div class="form-group">
+                    <h3>📍 경로 설정</h3>
                 </div>
 
                 <form id="routeForm">
                     <div class="form-group">
                         <label>🚀 출발지 위도</label>
-                        <input type="number" id="startLat" step="0.000001" placeholder="37.497175" value="37.497175">
+                        <input type="number" id="startLat" step="0.000001" placeholder="35.1595" value="35.1595">
                     </div>
                     
                     <div class="form-group">
                         <label>🚀 출발지 경도</label>
-                        <input type="number" id="startLng" step="0.000001" placeholder="127.027926" value="127.027926">
+                        <input type="number" id="startLng" step="0.000001" placeholder="126.8526" value="126.8526">
                     </div>
                     
                     <div class="form-group">
                         <label>🏁 도착지 위도</label>
-                        <input type="number" id="endLat" step="0.000001" placeholder="37.556785" value="37.556785">
+                        <input type="number" id="endLat" step="0.000001" placeholder="35.1664" value="35.1664">
                     </div>
                     
                     <div class="form-group">
                         <label>🏁 도착지 경도</label>
-                        <input type="number" id="endLng" step="0.000001" placeholder="126.924347" value="126.924347">
+                        <input type="number" id="endLng" step="0.000001" placeholder="126.8359" value="126.8359">
                     </div>
                     
                     <div class="form-group">
@@ -335,39 +202,21 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>🛣️ API 기능</label>
-                        <div class="api-buttons">
-                            <button type="button" class="btn api-btn btn-success" onclick="calculateBasicRoute()">
-                                📍 기본 경로
-                            </button>
-                            <button type="button" class="btn api-btn btn-info" onclick="analyzeRoute()">
-                                🔍 경로 분석
-                            </button>
-                            <button type="button" class="btn api-btn btn-warning" onclick="compareRoutes()">
-                                ⚖️ 경로 비교
-                            </button>
-                            <button type="button" class="btn api-btn btn-success" onclick="calculateWalkingRoute()">
-                                🚶 보행자 경로
-                            </button>
-                            <button type="button" class="btn api-btn btn-danger" onclick="calculateDrivingRoute()">
-                                🚗 자동차 경로
-                            </button>
-                            <button type="button" class="btn api-btn btn-secondary" onclick="getProfiles()">
-                                📋 프로필 목록
-                            </button>
-                            <button type="button" class="btn api-btn btn-info" onclick="checkHealth()">
-                                🩺 헬스 체크
-                            </button>
-                            <button type="button" class="btn api-btn" onclick="clearMap()">
-                                🗑️ 지도 초기화
-                            </button>
-                        </div>
+                        <button type="button" class="btn btn-primary" onclick="calculateRouteWithDangerCheck()">
+                            🛡️ 위험구역 고려 경로 계산
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" class="btn btn-secondary" onclick="clearMap()">
+                            🗑️ 지도 초기화
+                        </button>
                     </div>
                 </form>
 
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
-                    <p>처리 중입니다...</p>
+                    <p>위험구역을 분석하고 경로를 계산 중입니다...</p>
                 </div>
 
                 <div id="result"></div>
@@ -381,35 +230,20 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // API 베이스 URL 고정
+        // API 베이스 URL
         const API_BASE_URL = 'http://localhost:9806';
 
         // 전역 변수
         let map;
         let startMarker = null;
         let endMarker = null;
-        let routeLayers = [];
-
-        // 색상 매핑
-        const profileColors = {
-            'foot_fastest': '#007bff',
-            'foot_avoid': '#28a745',
-            'car_fastest': '#ffc107',
-            'car_avoid': '#dc3545'
-        };
-
-        // 사전 정의된 위치들
-        const presetLocations = {
-            gangnam: { start: [37.497175, 127.027926], end: [37.556785, 126.924347], name: '강남역 → 홍대입구역' },
-            hongdae: { start: [37.556785, 126.924347], end: [37.563600, 126.982908], name: '홍대입구역 → 명동역' },
-            myeongdong: { start: [37.563600, 126.982908], end: [37.534565, 126.994734], name: '명동역 → 이태원역' },
-            itaewon: { start: [37.534565, 126.994734], end: [37.497175, 127.027926], name: '이태원역 → 강남역' }
-        };
+        let basicRouteLayer = null;
+        let avoidRouteLayer = null;
 
         // 지도 초기화
         function initMap() {
             try {
-                map = L.map('map').setView([37.5665, 126.9780], 11);
+                map = L.map('map').setView([35.1595, 126.8526], 13); // 광주 중심
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
@@ -436,32 +270,10 @@
             });
         });
 
-        // 사전 정의 위치 설정
-        function setPreset(location) {
-            try {
-                const preset = presetLocations[location];
-                if (preset) {
-                    document.getElementById('startLat').value = preset.start[0];
-                    document.getElementById('startLng').value = preset.start[1];
-                    document.getElementById('endLat').value = preset.end[0];
-                    document.getElementById('endLng').value = preset.end[1];
-                    
-                    updateMarkers();
-                    showResult(`📍 ${preset.name} 경로가 설정되었습니다.`, 'success');
-                }
-            } catch (error) {
-                console.error('프리셋 설정 오류:', error);
-                showResult('❌ 프리셋 설정 실패', 'error');
-            }
-        }
-
         // 마커 업데이트
         function updateMarkers() {
             try {
-                if (!map) {
-                    console.log('지도가 아직 초기화되지 않음');
-                    return;
-                }
+                if (!map) return;
 
                 const startLat = parseFloat(document.getElementById('startLat').value);
                 const startLng = parseFloat(document.getElementById('startLng').value);
@@ -511,97 +323,15 @@
             }
         }
 
-        // 기본 경로 계산
-        async function calculateBasicRoute() {
+        // 위험구역 고려 경로 계산
+        async function calculateRouteWithDangerCheck() {
             const params = getRouteParams();
             if (!params) return;
 
-            const profile = params.transportMode === 'car' ? 'car_avoid' : 'foot_avoid';
-            params.profile = profile;
-            delete params.transportMode;
-
-            await makeRequest(`${API_BASE_URL}/api/navigation/route`, params, displayBasicRouteResult);
-        }
-
-        // 경로 분석
-        async function analyzeRoute() {
-            const params = getRouteParams();
-            if (!params) return;
-
-            const profile = params.transportMode === 'car' ? 'car_avoid' : 'foot_avoid';
-            params.profile = profile;
-            delete params.transportMode;
-
-            await makeRequest(`${API_BASE_URL}/api/navigation/analyze`, params, displayAnalysisResult);
-        }
-
-        // 경로 비교
-        async function compareRoutes() {
-            const params = getRouteParams();
-            if (!params) return;
-
-            await makeRequest(`${API_BASE_URL}/api/navigation/compare`, params, displayComparisonResult);
-        }
-
-        // 보행자 경로
-        async function calculateWalkingRoute() {
-            const params = getRouteParams();
-            if (!params) return;
-
-            delete params.transportMode;
-            await makeRequest(`${API_BASE_URL}/api/navigation/walking`, params, displayWalkingResult);
-        }
-
-        // 자동차 경로
-        async function calculateDrivingRoute() {
-            const params = getRouteParams();
-            if (!params) return;
-
-            delete params.transportMode;
-            await makeRequest(`${API_BASE_URL}/api/navigation/driving`, params, displayDrivingResult);
-        }
-
-        // 프로필 목록 조회
-        async function getProfiles() {
-            showLoading(true);
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/navigation/profiles`);
-                const data = await response.json();
-                
-                if (data && data.success) {
-                    displayProfilesResult(data);
-                } else {
-                    showResult('❌ 프로필 조회 실패', 'error');
-                }
-            } catch (error) {
-                console.error('프로필 조회 오류:', error);
-                showResult(`❌ 네트워크 오류: ${error.message}`, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // 헬스 체크
-        async function checkHealth() {
-            showLoading(true);
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/navigation/health`);
-                const data = await response.json();
-                displayHealthResult(data);
-            } catch (error) {
-                console.error('헬스 체크 오류:', error);
-                showResult(`❌ 헬스 체크 실패: ${error.message}`, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // 공통 요청 함수
-        async function makeRequest(url, params, displayFunction) {
             showLoading(true);
             
             try {
-                const response = await fetch(url, {
+                const response = await fetch(`${API_BASE_URL}/api/navigation/route-with-danger-check`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams(params)
@@ -612,20 +342,12 @@
                 }
 
                 const data = await response.json();
+                console.log('응답 데이터:', data);
                 
                 if (data && data.success) {
-                    displayFunction(data);
+                    displayDangerCheckResult(data);
                 } else {
                     showResult(`❌ 오류: ${data?.error || '알 수 없는 오류'}`, 'error');
-                    
-                    // 프로필 오류 시 사용 가능한 프로필 표시
-                    if (data && data.availableProfiles) {
-                        let profilesHtml = '<br>사용 가능한 프로필:<br>';
-                        Object.entries(data.availableProfiles).forEach(([key, value]) => {
-                            profilesHtml += `<strong>${key}:</strong> ${value}<br>`;
-                        });
-                        document.getElementById('result').innerHTML += profilesHtml;
-                    }
                 }
             } catch (error) {
                 console.error('요청 오류:', error);
@@ -633,6 +355,68 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        // 위험구역 고려 경로 결과 표시
+        function displayDangerCheckResult(data) {
+            clearRoutes();
+            
+            let resultHtml = `<div class="result success">`;
+            resultHtml += `<h3>🛡️ 위험구역 고려 경로 분석 완료</h3>`;
+            resultHtml += `<p><strong>교통수단:</strong> ${data.transportModeDescription}</p>`;
+            resultHtml += `<p><strong>위험구역 통과:</strong> ${data.passesThroughDangerZone ? '⚠️ 예' : '✅ 아니오'}</p>`;
+            resultHtml += `<p><strong>추천 경로:</strong> ${data.recommendedRoute === 'basic' ? '기본 경로' : '회피 경로'}</p>`;
+            
+            // 기본 경로 정보
+            if (data.basicRoute) {
+                resultHtml += createRouteInfoHtml(data.basicRoute, '#007bff');
+                displayRouteOnMap(data.basicRoute.coordinates, '#007bff', '기본 경로');
+            }
+            
+            // 회피 경로 정보
+            if (data.avoidRoute) {
+                resultHtml += createRouteInfoHtml(data.avoidRoute, '#28a745');
+                displayRouteOnMap(data.avoidRoute.coordinates, '#28a745', '회피 경로');
+            }
+            
+            // 경로 비교 정보
+            if (data.routeComparison) {
+                const comp = data.routeComparison;
+                resultHtml += `<div class="route-info" style="border-left-color: #ffc107">`;
+                resultHtml += `<h4 style="color: #856404">📊 경로 비교</h4>`;
+                resultHtml += `<div class="route-stats">`;
+                resultHtml += `<span>거리 차이: ${comp.distanceDifferenceKm > 0 ? '+' : ''}${comp.distanceDifferenceKm}km</span>`;
+                resultHtml += `<span>시간 차이: ${comp.timeDifferenceMinutes > 0 ? '+' : ''}${comp.timeDifferenceMinutes}분</span>`;
+                resultHtml += `</div>`;
+                resultHtml += `<div class="route-stats">`;
+                resultHtml += `<span>거리 차이: ${comp.distancePercentDifference > 0 ? '+' : ''}${comp.distancePercentDifference}%</span>`;
+                resultHtml += `<span>시간 차이: ${comp.timePercentDifference > 0 ? '+' : ''}${comp.timePercentDifference}%</span>`;
+                resultHtml += `</div>`;
+                resultHtml += `</div>`;
+            }
+            
+            // 위험구역 정보
+            if (data.dangerZoneInfo) {
+                const dzInfo = data.dangerZoneInfo;
+                resultHtml += `<div class="danger-zone-info">`;
+                resultHtml += `<h4>⚠️ 위험구역 정보</h4>`;
+                resultHtml += `<div class="route-stats">`;
+                resultHtml += `<span>위험구역 수: ${dzInfo.dangerZoneCount}개</span>`;
+                resultHtml += `<span>위험도: ${dzInfo.riskLevel}</span>`;
+                resultHtml += `</div>`;
+                
+                if (dzInfo.dangerZones && dzInfo.dangerZones.length > 0) {
+                    resultHtml += `<div style="margin-top: 8px; font-size: 12px;">`;
+                    dzInfo.dangerZones.forEach((zone, index) => {
+                        resultHtml += `<div>위험구역 ${index + 1}: ID ${zone.recordId} (${zone.dangerJsonPath})</div>`;
+                    });
+                    resultHtml += `</div>`;
+                }
+                resultHtml += `</div>`;
+            }
+            
+            resultHtml += `</div>`;
+            document.getElementById('result').innerHTML = resultHtml;
         }
 
         // 경로 파라미터 가져오기
@@ -657,224 +441,68 @@
             }
         }
 
-        // 기본 경로 결과 표시
-        function displayBasicRouteResult(data) {
-            clearRoutes();
-            
-            const color = profileColors[data.profile] || '#007bff';
-            let resultHtml = `<div class="result success">`;
-            resultHtml += `<h3>📍 기본 경로 계산 완료</h3>`;
-            resultHtml += createRouteInfoHtml(data, color, data.profileDescription || '기본 경로');
-            resultHtml += `</div>`;
-            
-            document.getElementById('result').innerHTML = resultHtml;
-            displayRouteOnMap(data.wkt, color, data.profileDescription || '기본 경로');
-        }
-
-        // 경로 분석 결과 표시
-        function displayAnalysisResult(data) {
-            clearRoutes();
-            
-            const color = profileColors[data.profile] || '#17a2b8';
-            let resultHtml = `<div class="result info">`;
-            resultHtml += `<h3>🔍 경로 분석 완료</h3>`;
-            resultHtml += createRouteInfoHtml(data, color, data.profileDescription || '분석된 경로');
-            
-            // 길찾기 안내 표시
-            if (data.directions && data.directions.length > 0) {
-                resultHtml += `<h4>🧭 길찾기 안내 (${data.directions.length}개)</h4>`;
-                resultHtml += `<div class="directions-list">`;
-                resultHtml += `<ol>`;
-                data.directions.forEach(direction => {
-                    resultHtml += `<li>${direction}</li>`;
-                });
-                resultHtml += `</ol></div>`;
-            }
-            
-            resultHtml += `</div>`;
-            
-            document.getElementById('result').innerHTML = resultHtml;
-            displayRouteOnMap(data.wkt, color, data.profileDescription || '분석된 경로');
-        }
-
-        // 경로 비교 결과 표시
-        function displayComparisonResult(data) {
-            clearRoutes();
-            
-            let resultHtml = `<div class="result info">`;
-            resultHtml += `<h3>⚖️ 경로 비교 결과 (${data.transportModeDescription})</h3>`;
-            
-            // 최단 경로
-            const fastestColor = profileColors[data.fastestRoute.profile] || '#007bff';
-            resultHtml += createRouteInfoHtml(data.fastestRoute, fastestColor, data.fastestRoute.profileDescription);
-            displayRouteOnMap(data.fastestRoute.wkt, fastestColor, data.fastestRoute.profileDescription);
-            
-            // 회피 경로
-            const avoidColor = profileColors[data.avoidRoute.profile] || '#28a745';
-            resultHtml += createRouteInfoHtml(data.avoidRoute, avoidColor, data.avoidRoute.profileDescription);
-            displayRouteOnMap(data.avoidRoute.wkt, avoidColor, data.avoidRoute.profileDescription);
-            
-            // 비교 정보
-            const comp = data.comparison;
-            resultHtml += `<div class="comparison-stats">`;
-            resultHtml += `<h4>📊 경로 비교 결과</h4>`;
-            resultHtml += `<div class="route-stats">`;
-            resultHtml += `<span>거리 차이: ${comp.distanceDifferenceKm > 0 ? '+' : ''}${comp.distanceDifferenceKm}km (${comp.distancePercentDifference > 0 ? '+' : ''}${comp.distancePercentDifference}%)</span>`;
-            resultHtml += `</div>`;
-            resultHtml += `<div class="route-stats">`;
-            resultHtml += `<span>시간 차이: ${comp.timeDifferenceMinutes > 0 ? '+' : ''}${comp.timeDifferenceMinutes}분 (${comp.timePercentDifference > 0 ? '+' : ''}${comp.timePercentDifference}%)</span>`;
-            resultHtml += `</div>`;
-            resultHtml += `<div class="route-stats">`;
-            resultHtml += `<span>${comp.isAvoidLonger ? '⚠️ 회피경로가 더 길지만 안전합니다' : '✅ 회피경로가 더 짧습니다'}</span>`;
-            resultHtml += `</div>`;
-            resultHtml += `</div>`;
-            
-            resultHtml += `</div>`;
-            document.getElementById('result').innerHTML = resultHtml;
-        }
-
-        // 보행자 경로 결과 표시
-        function displayWalkingResult(data) {
-            clearRoutes();
-            
-            let resultHtml = `<div class="result success">`;
-            resultHtml += `<h3>🚶 보행자 경로 완료</h3>`;
-            resultHtml += createRouteInfoHtml(data, '#28a745', data.profileDescription || '보행자 경로');
-            resultHtml += `</div>`;
-            
-            document.getElementById('result').innerHTML = resultHtml;
-            displayRouteOnMap(data.wkt, '#28a745', data.profileDescription || '보행자 경로');
-        }
-
-        // 자동차 경로 결과 표시
-        function displayDrivingResult(data) {
-            clearRoutes();
-            
-            let resultHtml = `<div class="result success">`;
-            resultHtml += `<h3>🚗 자동차 경로 완료</h3>`;
-            resultHtml += createRouteInfoHtml(data, '#dc3545', data.profileDescription || '자동차 경로');
-            resultHtml += `</div>`;
-            
-            document.getElementById('result').innerHTML = resultHtml;
-            displayRouteOnMap(data.wkt, '#dc3545', data.profileDescription || '자동차 경로');
-        }
-
-        // 프로필 결과 표시
-        function displayProfilesResult(data) {
-            let resultHtml = `<div class="result info">`;
-            resultHtml += `<h3>📋 사용 가능한 프로필</h3>`;
-            
-            resultHtml += `<h4>설정된 프로필 (${data.profileCount}개)</h4>`;
-            Object.entries(data.profiles).forEach(([key, value]) => {
-                resultHtml += `<div class="route-stats"><span><strong>${key}:</strong> ${value}</span></div>`;
-            });
-            
-            if (data.actualProfiles) {
-                resultHtml += `<h4>실제 로드된 프로필 (${data.actualProfileCount}개)</h4>`;
-                resultHtml += `<div style="font-size: 12px; color: #666;">${data.actualProfiles.join(', ')}</div>`;
-            }
-            
-            resultHtml += `</div>`;
-            document.getElementById('result').innerHTML = resultHtml;
-        }
-
-        // 헬스 체크 결과 표시
-        function displayHealthResult(data) {
-            const isHealthy = data.status === 'UP';
-            let resultHtml = `<div class="result ${isHealthy ? 'success' : 'error'}">`;
-            resultHtml += `<h3>🩺 시스템 헬스 체크</h3>`;
-            resultHtml += `<div class="route-stats">`;
-            resultHtml += `<span>상태: <strong>${data.status}</strong></span>`;
-            resultHtml += `<span>서비스: ${data.serviceHealthy ? '✅ 정상' : '❌ 이상'}</span>`;
-            resultHtml += `</div>`;
-            
-            if (data.availableProfiles) {
-                resultHtml += `<div class="route-stats">`;
-                resultHtml += `<span>프로필: ${data.profileCount}개 로드됨</span>`;
-                resultHtml += `</div>`;
-                resultHtml += `<div style="font-size: 11px; color: #666; margin-top: 5px;">`;
-                resultHtml += `${data.availableProfiles.join(', ')}`;
-                resultHtml += `</div>`;
-            }
-            
-            resultHtml += `<div style="margin-top: 10px; font-size: 12px; color: #666;">`;
-            resultHtml += `${data.message || ''}`;
-            resultHtml += `</div>`;
-            
-            resultHtml += `</div>`;
-            document.getElementById('result').innerHTML = resultHtml;
-        }
-
         // 경로 정보 HTML 생성
-        function createRouteInfoHtml(route, color, description) {
+        function createRouteInfoHtml(route, color) {
             return `
                 <div class="route-info" style="border-left-color: ${color}">
-                    <h4 style="color: ${color}">${description}</h4>
+                    <h4 style="color: ${color}">${route.description}</h4>
                     <div class="route-stats">
-                        <span>거리: ${route.distanceKm ? route.distanceKm.toFixed(2) : (route.distance / 1000).toFixed(2)}km</span>
-                        <span>시간: ${route.timeMinutes || Math.round(route.time / 60000)}분</span>
+                        <span>거리: ${route.distanceKm}km</span>
+                        <span>시간: ${route.timeMinutes}분</span>
                     </div>
                     <div class="route-stats">
                         <span>프로필: ${route.profile}</span>
-                        <span>좌표점: ${route.totalPoints || 'N/A'}개</span>
+                        <span>좌표점: ${route.coordinates ? route.coordinates.length : 0}개</span>
                     </div>
-                    ${route.directionsCount ? `<div class="route-stats"><span>안내: ${route.directionsCount}개</span></div>` : ''}
                 </div>
             `;
         }
 
         // 지도에 경로 표시
-        function displayRouteOnMap(wkt, color, popupText) {
+        function displayRouteOnMap(coordinates, color, popupText) {
             try {
-                if (!map) {
-                    console.log('지도가 초기화되지 않음');
-                    return;
-                }
+                if (!map || !coordinates || coordinates.length === 0) return;
 
-                const coords = parseWKTLineString(wkt);
-                if (coords.length > 0) {
-                    const polyline = L.polyline(coords, {
-                        color: color,
-                        weight: 4,
-                        opacity: 0.8
-                    }).addTo(map);
-                    
-                    if (popupText) {
-                        polyline.bindPopup(popupText);
-                    }
-                    
-                    routeLayers.push(polyline);
-                    
-                    if (routeLayers.length === 1) {
-                        map.fitBounds(polyline.getBounds().pad(0.1));
-                    }
+                // coordinates를 [lat, lng] 형태로 변환
+                const latLngs = coordinates.map(coord => [coord.y, coord.x]);
+                
+                const polyline = L.polyline(latLngs, {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
+                
+                if (popupText) {
+                    polyline.bindPopup(popupText);
+                }
+                
+                if (color === '#007bff') {
+                    basicRouteLayer = polyline;
+                } else {
+                    avoidRouteLayer = polyline;
+                }
+                
+                // 첫 번째 경로일 때만 지도 범위 조정
+                if (!basicRouteLayer || color === '#007bff') {
+                    map.fitBounds(polyline.getBounds().pad(0.1));
                 }
             } catch (error) {
                 console.error('경로 표시 오류:', error);
             }
         }
 
-        // WKT LINESTRING 파싱
-        function parseWKTLineString(wkt) {
-            try {
-                const coordStr = wkt.replace('LINESTRING (', '').replace(')', '');
-                const pairs = coordStr.split(', ');
-                return pairs.map(pair => {
-                    const [lng, lat] = pair.split(' ').map(Number);
-                    return [lat, lng];
-                });
-            } catch (error) {
-                console.error('WKT 파싱 오류:', error);
-                return [];
-            }
-        }
-
         // 경로 초기화
         function clearRoutes() {
             try {
-                if (map && routeLayers.length > 0) {
-                    routeLayers.forEach(layer => map.removeLayer(layer));
-                    routeLayers = [];
+                if (map) {
+                    if (basicRouteLayer) {
+                        map.removeLayer(basicRouteLayer);
+                        basicRouteLayer = null;
+                    }
+                    if (avoidRouteLayer) {
+                        map.removeLayer(avoidRouteLayer);
+                        avoidRouteLayer = null;
+                    }
                 }
             } catch (error) {
                 console.error('경로 초기화 오류:', error);

@@ -35,7 +35,7 @@ public class DangerPolygonLoader {
     /**
      * 단일 GeoJSON 파일을 읽어 Polygon 리스트로 반환
      *
-     * @param baseDir 기본 디렉토리 (예: /data/content/crim_total/geojson)
+     * @param baseDir 기본 디렉토리 (예: /data/content/geojson/)
      * @param cityName 도시 이름 (예: "광주광역시")
      * @param fileName danger_area_xxxx.geojson
      */
