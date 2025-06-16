@@ -22,25 +22,27 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "MainPage",
-  methods: {
-    navigateTo(page) {
-      const routes = {
-        favorites: null,
-        info: null,
-        mypage: null,
-        map: '/map',
-      };
-      if (routes[page]) {
-        this.$router.push(routes[page]);
-      } else {
-        alert('${page} 페이지는 현재 개발 중입니다.');
-      }
-    },
-  },
-};
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+function navigateTo(page) {
+  const routes = {
+    favorites: '/self_route',
+    info: '/route_board',
+    mypage: null,
+    map: '/map',
+  }
+
+  if (routes[page]) {
+    router.push(routes[page])
+  } else {
+    alert(`${page} 페이지는 현재 개발 중입니다.`)
+  }
+}
+
 </script>
 
 <style scoped>
