@@ -65,6 +65,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // ─ 선택 (Prometheus 메트릭스 노출이 필요할 때) ─
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    //wetshock
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 tasks.named('test') {

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python 크롤링 + AI 테스트</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover:not(:disabled) { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover:not(:disabled) { background: #218838; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .btn-warning:hover:not(:disabled) { background: #e0a800; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover:not(:disabled) { background: #545b62; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover:not(:disabled) { background: #c82333; }
+        #result { 
+            background: #f8f9fa; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 4px; 
+            min-height: 100px; 
+            white-space: pre-wrap; 
+            font-family: monospace; 
+            max-height: 600px; 
+            overflow-y: auto; 
+        }
+        #socketResult { 
+            background: #f8f9fa; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 4px; 
+            min-height: 100px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px;
+        }
+        .loading { color: #007bff; font-weight: bold; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .socket-connected { color: #28a745; font-weight: bold; }
+        .socket-disconnected { color: #dc3545; font-weight: bold; }
+        .socket-message { color: #007bff; }
+        .button-group { display: flex; flex-wrap: wrap; gap: 5px; }
+        .range-input { 
+            width: 200px; 
+            display: inline-block; 
+            margin-right: 10px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🐍 Python 크롤링 + AI 테스트</h1>
+    
+    <div class="container">
+        <h3>⚙️ 서버 설정</h3>
+        <div class="input-group">
+            <label for="serverUrl">서버 주소:</label>
+            <input type="text" id="serverUrl" value="http://localhost:9806" placeholder="예: http://localhost:9806">
+            <button onclick="setPresetUrl('http://localhost:9806')">로컬 서버</button>
+            <button class="btn-secondary" onclick="testConnection()">연결 테스트</button>
+        </div>
+    </div>
+
+    <!-- WebSocket 테스트 섹션 수정 -->   
+    <div class="container">
+        <h3>🔌 WebSocket 실시간 알림 테스트</h3>
+        <div class="button-group">
+            <button id="socketConnectBtn" class="btn-success" onclick="connectWebSocket()">🔗 소켓 연결</button>
+            <button id="socketDisconnectBtn" class="btn-danger" onclick="disconnectWebSocket()" disabled>❌ 소켓 연결 해제</button>
+            <button onclick="sendTestAlert()">📢 기본 테스트 알림</button>
+            <button onclick="sendCustomAlert()">📝 커스텀 알림</button>
+            <button onclick="sendMultipleAlerts()">📊 다중 알림</button>
+            <button onclick="sendDangerLevelAlerts()">⚠️ 위험도별 알림</button>
+            <button onclick="clearSocketLog()">🗑️ 로그 지우기</button>
+        </div>
+        
+        <!-- 커스텀 알림 입력 필드 추가 -->
+        <div class="input-group" style="margin-top: 10px;">
+            <label for="customMessage">커스텀 알림 메시지:</label>
+            <input type="text" id="customMessage" placeholder="예: 강남구에서 강도 사건 발생" value="강남구에서 강도 사건이 발생했습니다.">
+            <label for="customDangerLevel" style="margin-top: 10px;">위험도 (1-5):</label>
+            <input type="number" id="customDangerLevel" min="1" max="5" value="1" style="width: 100px;">
+        </div>
+        
+        <!-- 다중 알림 설정 -->
+        <div class="input-group">
+            <label for="alertCount">다중 알림 개수:</label>
+            <input type="number" id="alertCount" min="1" max="10" value="3" style="width: 100px; margin-right: 10px;">
+            <label for="alertInterval">간격 (밀리초):</label>
+            <input type="number" id="alertInterval" min="500" max="10000" value="2000" style="width: 100px;">
+        </div>
+        
+        <p><span id="socketStatus" class="socket-disconnected">연결 해제됨</span></p>
+        <div id="socketResult">WebSocket 연결 버튼을 클릭하여 실시간 알림을 테스트하세요.
+
+📋 사용법:
+1. '소켓 연결' 버튼 클릭
+2. 다양한 테스트 버튼으로 WebSocket 기능 확인
+3. '크롤링 + AI 통합 실행'으로 실제 알림 확인</div>
+    </div>
+    
+    <div class="container">
+        <h3>🚀 기본 실행</h3>
+        <div class="button-group">
+            <button id="crawlingBtn" onclick="executeCrawling()">🕷️ 크롤링만 실행</button>
+            <button id="combinedBtn" class="btn-success" onclick="executeCrawlingWithAI()">🎯 크롤링 + AI 통합 실행</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>🤖 AI 키워드 추출 설정</h3>
+        <div class="input-group">
+            <label for="articleDirectory">기사 디렉토리:</label>
+            <input type="text" id="articleDirectory" value="../../data/crawling/naver_articles">
+        </div>
+        <div class="input-group">
+            <label for="rangeInput">처리 범위 (선택사항):</label>
+            <input type="text" id="rangeInput" class="range-input" placeholder="예: 1-5, 1,3,5, all">
+            <input type="number" id="crawlNumInput" class="range-input" placeholder="크롤링 개수" min="1">
+        </div>
+        <div class="button-group">
+            <button id="aiBtn" class="btn-warning" onclick="executeAiKeyword()">🤖 AI 키워드 추출</button>
+            <button onclick="executeAiWithRange()">📝 범위 지정 실행</button>
+            <button onclick="executeAiWithCrawlNum()">🔢 개수 기반 실행</button>
+        </div>
+        <p style="font-size: 12px; color: #666;">
+            💡 팁: 범위 예시 - "1-5" (1~5번), "1,3,5" (1,3,5번만), "all" (전체)
+        </p>
+    </div>
+
+    <div class="container">
+        <h3>📊 실행 결과</h3>
+        <div id="result">실행 버튼을 클릭하여 테스트를 시작하세요.
+
+📋 사용 가이드:
+- 크롤링만 실행: 네이버 뉴스 크롤링
+- 통합 실행: 크롤링 후 새 기사 자동 AI 처리  
+- AI 키워드 추출: 기존 파일에서 키워드 추출
+- 범위/개수 지정: 특정 파일만 처리</div>
+    </div>
+
+    <!-- CDN 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+
+    <script>
+        // WebSocket 관련 변수
+        let stompClient = null;
+        let socket = null;
+
+        function setPresetUrl(url) {
+            document.getElementById('serverUrl').value = url;
+        }
+
+        function getServerUrl() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            if (!serverUrl) {
+                alert('서버 주소를 입력해주세요.');
+                return null;
+            }
+            return serverUrl.startsWith('http') ? serverUrl : 'http://' + serverUrl;
+        }
+
+        function testConnection() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">🔍 연결 테스트 중...</div>';
+
+            fetch(serverUrl + '/actuator/health', { method: 'GET', mode: 'cors' })
+                .then(response => {
+                    if (response.ok) {
+                        resultDiv.innerHTML = `<div class="success">✅ 서버 연결 성공</div><pre>서버: ${serverUrl}</pre>`;
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">❌ 서버 응답 오류 (${response.status})</div>`;
+                    }
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<div class="error">❌ 서버 연결 실패: ${error.message}</div>`;
+                });
+        }
+
+        // ================== WebSocket 관련 함수 ==================
+
+        function connectWebSocket() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            if (stompClient && stompClient.connected) {
+                addSocketLog('❗ 이미 WebSocket이 연결되어 있습니다.');
+                return;
+            }
+
+            try {
+                addSocketLog('🔄 WebSocket 연결 시도 중...');
+                const sockjsUrl = serverUrl + '/ws-danger-alerts';
+                socket = new SockJS(sockjsUrl);
+                
+                stompClient = new StompJs.Client({
+                    webSocketFactory: () => socket,
+                    debug: (str) => {
+                        console.log('STOMP Debug:', str);
+                    },
+                    reconnectDelay: 5000,
+                    heartbeatIncoming: 4000,
+                    heartbeatOutgoing: 4000
+                });
+
+                stompClient.onConnect = (frame) => {
+                    addSocketLog('✅ WebSocket 연결 성공!');
+                    updateSocketStatus(true);
+                    
+                    // 위험 알림 토픽 구독
+                    stompClient.subscribe('/topic/danger-alerts', (message) => {
+                        const dangerAlert = JSON.parse(message.body);
+                        const dangerLevelName = getDangerLevelName(dangerAlert.dangerDetailId);
+                        
+                        addSocketLog(`🚨 위험 알림 수신: ${dangerAlert.alertSentence}`);
+                        addSocketLog(`   └ 위험도: ${dangerAlert.dangerDetailId} (${dangerLevelName})`);
+                        
+                        // 브라우저 알림 (권한이 있는 경우)
+                        if (Notification.permission === 'granted') {
+                            new Notification(`위험 알림 - ${dangerLevelName}`, {
+                                body: dangerAlert.alertSentence,
+                                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚨</text></svg>'
+                            });
+                        }
+                    });
+                };
+
+                stompClient.onStompError = (frame) => {
+                    addSocketLog(`❌ STOMP 오류: ${frame.headers['message']}`);
+                    addSocketLog(`상세: ${frame.body}`);
+                    updateSocketStatus(false);
+                };
+
+                stompClient.onWebSocketError = (event) => {
+                    addSocketLog(`❌ WebSocket 오류: ${event}`);
+                    updateSocketStatus(false);
+                };
+
+                stompClient.onDisconnect = () => {
+                    addSocketLog('🔌 WebSocket 연결 해제됨');
+                    updateSocketStatus(false);
+                };
+
+                stompClient.activate();
+
+                // 브라우저 알림 권한 요청
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            addSocketLog('🔔 브라우저 알림 권한 허용됨');
+                        }
+                    });
+                }
+
+            } catch (error) {
+                addSocketLog(`❌ 연결 실패: ${error.message}`);
+                updateSocketStatus(false);
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (stompClient && stompClient.connected) {
+                stompClient.deactivate();
+                addSocketLog('🔌 WebSocket 연결을 해제했습니다.');
+                updateSocketStatus(false);
+            } else {
+                addSocketLog('❗ WebSocket이 연결되어 있지 않습니다.');
+            }
+        }
+
+        function sendTestAlert() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            addSocketLog('📢 테스트 알림 전송 요청 중...');
+
+            fetch(serverUrl + '/api/test/send-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.text())
+            .then(data => {
+                addSocketLog(`📤 테스트 알림 전송 완료: ${data}`);
+            })
+            .catch(error => {
+                addSocketLog(`❌ 테스트 알림 전송 실패: ${error.message}`);
+            });
+        }
+
+        // ================== 추가된 WebSocket 테스트 함수들 ==================
+
+        function sendCustomAlert() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            const message = document.getElementById('customMessage').value.trim();
+            const dangerLevel = document.getElementById('customDangerLevel').value;
+
+            if (!message) {
+                alert('커스텀 메시지를 입력해주세요.');
+                return;
+            }
+
+            addSocketLog(`📝 커스텀 알림 전송 요청... (메시지: ${message}, 위험도: ${dangerLevel})`);
+
+            fetch(`${serverUrl}/api/test/send-custom-alert?message=${encodeURIComponent(message)}&dangerLevel=${dangerLevel}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addSocketLog(`✅ 커스텀 알림 전송 성공: ${data.message}`);
+                } else {
+                    addSocketLog(`❌ 커스텀 알림 전송 실패: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                addSocketLog(`❌ 커스텀 알림 전송 오류: ${error.message}`);
+            });
+        }
+
+        function sendMultipleAlerts() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            const count = document.getElementById('alertCount').value;
+            const interval = document.getElementById('alertInterval').value;
+
+            if (count < 1 || count > 10) {
+                alert('알림 개수는 1~10개 사이로 설정해주세요.');
+                return;
+            }
+
+            addSocketLog(`📊 다중 알림 전송 시작... (${count}개, ${interval}ms 간격)`);
+
+            fetch(`${serverUrl}/api/test/send-multiple-alerts?count=${count}&interval=${interval}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addSocketLog(`✅ 다중 알림 전송 시작: ${data.message}`);
+                } else {
+                    addSocketLog(`❌ 다중 알림 전송 실패: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                addSocketLog(`❌ 다중 알림 전송 오류: ${error.message}`);
+            });
+        }
+
+        function sendDangerLevelAlerts() {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            addSocketLog('⚠️ 위험도별 테스트 알림 전송 시작... (1~5단계, 2초 간격)');
+
+            fetch(`${serverUrl}/api/test/send-danger-level-alerts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addSocketLog(`✅ 위험도별 알림 전송 시작: ${data.message}`);
+                } else {
+                    addSocketLog(`❌ 위험도별 알림 전송 실패: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                addSocketLog(`❌ 위험도별 알림 전송 오류: ${error.message}`);
+            });
+        }
+
+        function clearSocketLog() {
+            document.getElementById('socketResult').innerHTML = 'WebSocket 로그가 지워졌습니다.';
+        }
+
+        function addSocketLog(message) {
+            const socketResult = document.getElementById('socketResult');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            
+            if (socketResult.innerHTML === 'WebSocket 연결 버튼을 클릭하여 실시간 알림을 테스트하세요.\n\n📋 사용법:\n1. \'소켓 연결\' 버튼 클릭\n2. \'크롤링 + AI 통합 실행\' 버튼으로 실제 알림 확인\n3. \'테스트 알림 전송\' 버튼으로 수동 알림 테스트' ||
+                socketResult.innerHTML === 'WebSocket 로그가 지워졌습니다.') {
+                socketResult.innerHTML = logEntry;
+            } else {
+                socketResult.innerHTML += logEntry;
+            }
+            
+            // 자동 스크롤
+            socketResult.scrollTop = socketResult.scrollHeight;
+        }
+
+        function updateSocketStatus(connected) {
+            const statusElement = document.getElementById('socketStatus');
+            const connectBtn = document.getElementById('socketConnectBtn');
+            const disconnectBtn = document.getElementById('socketDisconnectBtn');
+            
+            if (connected) {
+                statusElement.innerHTML = '연결됨';
+                statusElement.className = 'socket-connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusElement.innerHTML = '연결 해제됨';
+                statusElement.className = 'socket-disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        // 위험도 레벨명 반환 함수 추가
+        function getDangerLevelName(dangerDetailId) {
+            const dangerLevels = {
+                1: '강도',
+                2: '성폭행', 
+                3: '폭행',
+                4: '절도',
+                5: '살인'
+            };
+            return dangerLevels[dangerDetailId] || '알 수 없음';
+        }
+
+        // ================== 기존 함수들 ==================
+
+        function executeCrawling() {
+            executeRequest('/api/test/crawling/execute', '🕷️ 크롤링 실행 중...', 'crawlingBtn');
+        }
+
+        function executeCrawlingWithAI() {
+            executeRequest('/api/test/crawling/with-ai', '🚀 크롤링 + AI 통합 실행 중...\n시간이 오래 걸릴 수 있습니다.', 'combinedBtn');
+        }
+
+        function executeAiKeyword() {
+            const articleDirectory = document.getElementById('articleDirectory').value;
+            const url = `/api/test/ai-keyword/execute?articleDirectory=${encodeURIComponent(articleDirectory)}`;
+            executeRequest(url, '🤖 AI 키워드 추출 실행 중...', 'aiBtn');
+        }
+
+        function executeAiWithRange() {
+            const articleDirectory = document.getElementById('articleDirectory').value;
+            const range = document.getElementById('rangeInput').value.trim();
+            
+            if (!range) {
+                alert('범위를 입력해주세요. (예: 1-5, 1,3,5, all)');
+                return;
+            }
+            
+            const url = `/api/test/ai-keyword/execute?articleDirectory=${encodeURIComponent(articleDirectory)}&range=${encodeURIComponent(range)}`;
+            executeRequest(url, `📝 범위 지정 AI 실행 중... (${range})`, null);
+        }
+
+        function executeAiWithCrawlNum() {
+            const articleDirectory = document.getElementById('articleDirectory').value;
+            const crawlNum = document.getElementById('crawlNumInput').value;
+            
+            if (!crawlNum || crawlNum < 1) {
+                alert('크롤링 개수를 입력해주세요. (1 이상의 숫자)');
+                return;
+            }
+            
+            const url = `/api/test/ai-keyword/execute?articleDirectory=${encodeURIComponent(articleDirectory)}&crawlNum=${crawlNum}`;
+            executeRequest(url, `🔢 개수 기반 AI 실행 중... (1-${crawlNum})`, null);
+        }
+
+        function executeRequest(endpoint, loadingMessage, buttonId) {
+            const serverUrl = getServerUrl();
+            if (!serverUrl) return;
+
+            const resultDiv = document.getElementById('result');
+            const button = buttonId ? document.getElementById(buttonId) : null;
+            const originalButtonText = button ? button.textContent : '';
+            
+            // 버튼 상태 변경
+            disableAllButtons(true);
+            if (button) button.textContent = '실행 중...';
+            resultDiv.innerHTML = `<div class="loading">${loadingMessage}</div>`;
+            
+            const startTime = Date.now();
+            
+            fetch(serverUrl + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            })
+            .then(response => response.text())
+            .then(data => {
+                const duration = Math.round((Date.now() - startTime) / 1000);
+                
+                try {
+                    const jsonData = JSON.parse(data);
+                    displayResult(jsonData, duration);
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="success">✅ 실행 완료 (${duration}초)</div><pre>${data}</pre>`;
+                }
+            })
+            .catch(error => {
+                const duration = Math.round((Date.now() - startTime) / 1000);
+                resultDiv.innerHTML = `<div class="error">❌ 요청 실패 (${duration}초): ${error.message}</div>`;
+            })
+            .finally(() => {
+                disableAllButtons(false);
+                if (button) button.textContent = originalButtonText;
+            });
+        }
+
+        function displayResult(jsonData, duration) {
+            const resultDiv = document.getElementById('result');
+            const isSuccess = jsonData.success || 
+                            (jsonData.crawling && jsonData.crawling.success) ||
+                            (jsonData.aiKeywordExtraction && jsonData.aiKeywordExtraction.success);
+            
+            let resultHtml = '';
+            
+            if (isSuccess) {
+                resultHtml = `<div class="success">✅ 실행 완료 (${duration}초)</div>`;
+                
+                // 통합 실행 결과 특별 처리
+                if (jsonData.crawling && jsonData.aiKeywordExtraction) {
+                    const crawlNum = jsonData.crawlNum || 0;
+                    const aiResults = jsonData.aiKeywordExtraction.results || [];
+                    
+                    resultHtml += `\n\n📊 실행 요약:`;
+                    resultHtml += `\n🕷️ 크롤링: ${crawlNum}개 기사`;
+                    resultHtml += `\n🤖 AI 처리: ${aiResults.length}개 파일`;
+                    
+                    if (aiResults.length > 0) {
+                        resultHtml += `\n\n🎯 AI 키워드 추출 결과:`;
+                        aiResults.forEach((result, index) => {
+                            resultHtml += `\n${index + 1}. ${result.alert_sentence}`;
+                        });
+                    }
+                }
+                
+                // 단순 AI 실행 결과
+                else if (jsonData.results) {
+                    resultHtml += `\n\n🎯 처리 결과 (${jsonData.processed_files}/${jsonData.total_files}):`;
+                    jsonData.results.forEach((result, index) => {
+                        resultHtml += `\n${index + 1}. ${result.alert_sentence}`;
+                    });
+                    
+                    if (jsonData.target_numbers) {
+                        resultHtml += `\n\n📋 처리 범위: ${jsonData.target_numbers.join(', ')}`;
+                    }
+                }
+                
+                resultHtml += '\n\n📋 전체 응답:';
+                resultHtml += `<pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
+            } else {
+                resultHtml = `<div class="error">❌ 실행 실패 (${duration}초)</div><pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = resultHtml;
+        }
+
+        function disableAllButtons(disabled) {
+            const buttons = document.querySelectorAll('button:not(#socketConnectBtn):not(#socketDisconnectBtn)');
+            buttons.forEach(button => button.disabled = disabled);
+        }
+
+        // 페이지 로드 시 WebSocket 상태 초기화
+        window.addEventListener('beforeunload', function() {
+            if (stompClient && stompClient.connected) {
+                stompClient.deactivate();
+            }
+        });
+    </script>
+</body>
+</html>

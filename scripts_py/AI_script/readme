@@ -1,0 +1,8 @@
+koelectra.py txt 파일 받아서 결과 요약해주는 모델 모델 실행 파일 내부에서 txt파일명 변경하고 리스트 바꾸는걸로 값변경가능
+
+model_loader.py 모델불러오는 파일 1회만 실행
+
+
+라이브러리 버전
+transformers == 4.52.2
+requirements.txt 참고

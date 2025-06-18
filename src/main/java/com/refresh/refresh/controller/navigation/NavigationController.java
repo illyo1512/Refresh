@@ -1,4 +1,10 @@
-package com.refresh.refresh.controller;
+package com.refresh.refresh.controller.navigation;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 
 import com.graphhopper.ResponsePath;
 import com.refresh.refresh.entity.DangerRecord;
@@ -6,6 +12,9 @@ import com.refresh.refresh.service.navigate.GraphHopperService;
 import com.refresh.refresh.service.route_judge.DangerPolygonLoader;
 import com.refresh.refresh.service.route_judge.DangerZoneBboxChecker;
 import com.refresh.refresh.service.route_judge.RouteIntersectionChecker;
+import com.refresh.refresh.service.SelfRouteService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Polygon;
@@ -30,6 +39,8 @@ public class NavigationController {
     private final DangerZoneBboxChecker dangerZoneBboxChecker;
     private final DangerPolygonLoader dangerPolygonLoader;
     private final RouteIntersectionChecker routeIntersectionChecker;
+    private final SelfRouteService selfRouteService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.geojson.base-dir:content/geojson}")
     private String geojsonBaseDir;
@@ -40,6 +51,93 @@ public class NavigationController {
     /**
      * 위험구역을 고려한 경로 계산
      */
+    @Operation(summary = "위험구역 고려 경로 계산", description = "기본 경로와 위험구역 회피 경로를 계산합니다")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "성공 응답 예시",
+                    value = """
+                    {
+                      "success": true,
+                      "transportMode": "foot",
+                      "transportModeDescription": "보행자",
+                      "basicRoute": {
+                        "profile": "foot_fastest",
+                        "description": "기본 경로",
+                        "distance": 897.823888111766,
+                        "distanceKm": 0.9,
+                        "time": 646434,
+                        "timeMinutes": 11,
+                        "coordinates": [
+                          {
+                            "x": 126.896159,
+                            "y": 35.111134,
+                            "z": "NaN",
+                            "m": "NaN",
+                            "valid": true
+                          }
+                        ]
+                      },
+                      "passesThroughDangerZone": true,
+                      "avoidRoute": {
+                        "profile": "foot_avoid",
+                        "description": "회피 경로",
+                        "distance": 2128.3870594866466,
+                        "distanceKm": 2.13,
+                        "time": 1532439,
+                        "timeMinutes": 26,
+                        "coordinates": [
+                          {
+                            "x": 126.896159,
+                            "y": 35.111134,
+                            "z": "NaN",
+                            "m": "NaN",
+                            "valid": true
+                          }
+                        ]
+                      },
+                      "routeComparison": {
+                        "distanceDifference": 1230.5631713748808,
+                        "distanceDifferenceKm": 1.23,
+                        "timeDifference": 886005,
+                        "timeDifferenceMinutes": 15,
+                        "distancePercentDifference": 137.1,
+                        "timePercentDifference": 137.1
+                      },
+                      "recommendedRoute": "avoid",
+                      "dangerZoneInfo": {
+                        "dangerZoneCount": 2,
+                        "dangerZones": [
+                          {
+                            "recordId": 310,
+                            "detailId": 2,
+                            "dangerJsonPath": "danger_area_126.8960_35.1040_126.9000_35.1080.geojson"
+                          }
+                        ],
+                        "riskLevel": "MEDIUM"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "success": false,
+                      "error": "지원되지 않는 교통수단: bike",
+                      "availableTransportModes": ["foot", "car"]
+                    }
+                    """
+                )
+            )
+        )
+    })
     @PostMapping("/route-with-danger-check")
     public ResponseEntity<?> routeWithDangerCheck(
             @RequestParam double startLat,
@@ -230,5 +328,86 @@ public class NavigationController {
         comparison.put("timePercentDifference", Math.round(timePercent * 10.0) / 10.0);
         
         return comparison;
+    }
+
+    /**
+     * 경로 계산 결과 저장
+     */
+    @Operation(summary = "경로 계산 결과 저장", description = "사용자가 계산한 경로 결과를 저장합니다")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "저장 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "success": true,
+                      "message": "경로가 성공적으로 저장되었습니다",
+                      "selfRouteId": 1
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "저장 실패",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "success": false,
+                      "error": "필수 파라미터가 누락되었습니다"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    @PostMapping("/save-route")
+    public ResponseEntity<?> saveRoute(@RequestBody Map<String, Object> request) {
+        try {
+            // 파라미터 추출
+            Integer userId = (Integer) request.get("userId");
+            String routeName = (String) request.get("routeName");
+            Object routeResult = request.get("routeResult");
+
+            // 입력값 검증
+            if (userId == null || routeName == null || routeName.toString().trim().isEmpty() 
+                || routeResult == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "error", "필수 파라미터가 누락되었습니다"));
+            }
+
+            // routeResult를 JSON 문자열로 변환
+            String routeResultJson;
+            if (routeResult instanceof String) {
+                routeResultJson = (String) routeResult;
+            } else {
+                routeResultJson = objectMapper.writeValueAsString(routeResult);
+            }
+
+            // JSON 유효성 검증
+            try {
+                objectMapper.readTree(routeResultJson);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "error", "올바르지 않은 JSON 형식입니다"));
+            }
+
+            // 경로 저장
+            Integer selfRouteId = selfRouteService.saveRoute(userId, routeName.toString().trim(), routeResultJson);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "경로가 성공적으로 저장되었습니다");
+            response.put("selfRouteId", selfRouteId);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("경로 저장 중 예외 발생", e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "error", "서버 오류로 저장에 실패했습니다"));
+        }
     }
 }

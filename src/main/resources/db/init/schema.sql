@@ -124,7 +124,7 @@ CREATE TABLE saved_route (
 CREATE TABLE destination_self (
     destination_id INT AUTO_INCREMENT,
     self_route_id INT NOT NULL,
-    info_id INT NOT NULL,
+    info_id INT,
     destination_order INT NOT NULL,
     destination_locate TEXT,
     PRIMARY KEY (destination_id, self_route_id),
@@ -136,7 +136,7 @@ CREATE TABLE destination_self (
 CREATE TABLE destination_save (
     destination_id INT AUTO_INCREMENT,
     saved_route_id INT NOT NULL,
-    info_id INT NOT NULL,
+    info_id INT,
     destination_order INT NOT NULL,
     destination_locate TEXT,
     PRIMARY KEY (destination_id, saved_route_id),

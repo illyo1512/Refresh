@@ -40,7 +40,7 @@ public class SavedRouteController {
      * @return SavedRouteDTO
      */
     @GetMapping("/{id}")
-    public SavedRouteDTO getSavedRouteById(@PathVariable int id) {
+    public SavedRouteDTO getSavedRouteById(@PathVariable Integer id) {
         SavedRoute savedRoute = savedRouteService.getSavedRouteById(id);
         SavedRouteDTO savedRouteDTO = new SavedRouteDTO();
         savedRouteDTO.setSavedRouteId(savedRoute.getSavedRouteId());
@@ -49,6 +49,23 @@ public class SavedRouteController {
         savedRouteDTO.setRouteResult(savedRoute.getRouteResult());
         savedRouteDTO.setCreatedAt(savedRoute.getCreatedAt());
         return savedRouteDTO;
+    }
+
+    /**
+     * 사용자 ID의 즐겨찾기 경로 목록을 가져오는 API
+     * @param userId 사용자 ID
+     * @return List<SavedRouteDTO>
+     */
+    @GetMapping("/user_id/{userId}")
+    public List<SavedRouteDTO> getSavedRoutesByUserId(@PathVariable Integer userId) {
+        return savedRouteService.getSavedRoutesByUserId(userId).stream()
+                .map(savedRoute -> {
+                    SavedRouteDTO savedRouteDTO = new SavedRouteDTO();
+                    savedRouteDTO.setSavedRouteId(savedRoute.getSavedRouteId());
+                    savedRouteDTO.setRouteName(savedRoute.getRouteName());
+                    savedRouteDTO.setCreatedAt(savedRoute.getCreatedAt());
+                    return savedRouteDTO;
+                }).collect(Collectors.toList());
     }
 
     /**

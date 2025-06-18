@@ -35,6 +35,24 @@ public class SelfRouteController {
     }
 
     /**
+     * 사용자 ID로 자신 경로 목록을 가져오는 API
+     * @param userId 사용자 ID
+     * @return List<SelfRouteDTO>
+     */
+    @GetMapping("/user/{userId}")
+    public List<SelfRouteDTO> getRoutesByUserId(@PathVariable Integer userId) {
+        return selfRouteService.getSelfRoutesByUserId(userId).stream()  // 전체 엔티티 조회
+                .map(selfRoute -> {
+                    SelfRouteDTO selfRouteDTO = new SelfRouteDTO();
+                    selfRouteDTO.setSelfRouteId(selfRoute.getSelfRouteId());
+                    selfRouteDTO.setRouteName(selfRoute.getRouteName());
+                    selfRouteDTO.setCreatedAt(selfRoute.getCreatedAt());
+                    return selfRouteDTO;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 특정 ID의 자신 경로 정보를 가져오는 API
      * @param id 경로 ID
      * @return SelfRouteDTO

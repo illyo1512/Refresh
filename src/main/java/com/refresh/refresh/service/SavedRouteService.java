@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SavedRouteService {
@@ -26,8 +27,26 @@ public class SavedRouteService {
      * @param id 경로 ID
      * @return SavedRoute
      */
-    public SavedRoute getSavedRouteById(int id) {
+    public SavedRoute getSavedRouteById(Integer id) { 
         return savedRouteRepository.findById(id).orElseThrow(() -> new RuntimeException("SavedRoute not found"));
+    }
+    
+    /**
+     * USER ID로 즐겨찾기 경로 정보를 가져오는 메서드
+     * @param userId 사용자 ID
+     * @return List<SavedRoute>
+     */
+    public List<SavedRoute> getSavedRoutesByUserId(Integer userId) { 
+        return savedRouteRepository.findByUserId(userId);
+    }
+    
+    /**
+     * USER ID로 경로 ID와 이름만 가져오는 메서드
+     * @param userId 사용자 ID
+     * @return List<Map<String, Object>> - savedRouteId, routeName 포함
+     */
+    public List<Map<String, Object>> getRouteIdAndNameByUserId(Integer userId) { 
+        return savedRouteRepository.findRouteIdAndNameByUserId(userId);
     }
 
     /**
@@ -55,7 +74,7 @@ public class SavedRouteService {
      * 특정 ID의 즐겨찾기 경로 정보를 삭제하는 메서드
      * @param id 경로 ID
      */
-    public void deleteSavedRoute(int id) {
+    public void deleteSavedRoute(Integer id) { 
         if (!savedRouteRepository.existsById(id)) {
             throw new RuntimeException("SavedRoute not found");
         }
