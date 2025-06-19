@@ -34,7 +34,7 @@
     </div>
 
     <button class="confirm-button" @click="confirmSelection">
-      확인 <span class="circle-number">③</span>
+      확인
     </button>
   </div>
 </template>
@@ -49,7 +49,7 @@ const routes = ref([])
 const selectedRoute = ref(null)
 
 function goBack() {
-  router.back()
+  router.push('/writepost')
 }
 
 function confirmSelection() {

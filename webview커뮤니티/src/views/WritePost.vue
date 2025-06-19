@@ -33,6 +33,11 @@
       <span>이미지 첨부하기</span>
     </div>
 
+    <!-- 이미지 미리보기 -->
+    <div v-if="previewUrl" class="image-preview">
+      <img :src="previewUrl" alt="미리보기" />
+    </div>
+
     <button class="route-btn" @click="importRoute">경로 가져오기</button>
     <button class="submit-btn" @click="submitPost">글 작성 완료하기</button>
   </div>
@@ -49,33 +54,41 @@ const content = ref('')
 const region1 = ref('')
 const region2 = ref('')
 const imageFile = ref(null)
+const previewUrl = ref(null) // 이미지 미리보기용 URL
 
 const selectedRoute = ref(null)
 
 // 페이지 진입 시 localStorage에서 선택된 경로 불러오기
 onMounted(() => {
   const routeData = localStorage.getItem('selectedRoute')
+  localStorage.removeItem('selectedRoute') // 불러온 후 제거
   if (routeData) {
     selectedRoute.value = JSON.parse(routeData)
   }
 })
 
 const goBack = () => {
-  router.back()
+  router.push('/route_board')
 }
 
 const handleImageUpload = (e) => {
-  imageFile.value = e.target.files[0]
+  const file = e.target.files[0]
+  if (file) {
+    imageFile.value = file
+    previewUrl.value = URL.createObjectURL(file)
+  }
 }
 
-// 경로 선택 화면으로 이동
 const importRoute = () => {
-  router.push('/selectedRoute')
+  router.push('/savedroute')
 }
 
-// 글 작성 제출
 const submitPost = async () => {
   const nickname = localStorage.getItem('nickname') || '익명'
+  if (!title.value || !content.value) {
+    alert('제목과 내용을 입력해주세요')
+    return
+  }
 
   const newPost = {
     route_board_id: Date.now(),
@@ -89,7 +102,7 @@ const submitPost = async () => {
     like_count: 0,
     comment_count: 0,
     isHot: false,
-    routeInfo: selectedRoute.value, // 선택된 경로도 저장
+    routeInfo: selectedRoute.value,
   }
 
   try {
@@ -203,5 +216,15 @@ const submitPost = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.image-preview {
+  margin-bottom: 10px;
+  text-align: center;
+}
+.image-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 10px;
+  border: 1px solid #999;
 }
 </style>
