@@ -25,7 +25,10 @@
     <div v-if="selectedRoute" class="route-preview">
       <p><strong>선택한 경로명:</strong> {{ selectedRoute.routeName }}</p>
       <p>경유지 수: {{ selectedRoute.routeResult?.waypoints?.length || 0 }}</p>
-      <div class="map-preview">[지도 자리]</div>
+      
+      <div class="image-wrapper">
+        <img :src="'/경로추천.png'" alt="경로 이미지" />
+      </div>
     </div>
 
     <div class="file-upload">
@@ -49,22 +52,31 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+
 const title = ref('')
 const content = ref('')
 const region1 = ref('')
 const region2 = ref('')
 const imageFile = ref(null)
-const previewUrl = ref(null) // 이미지 미리보기용 URL
-
+const previewUrl = ref(null)
 const selectedRoute = ref(null)
 
-// 페이지 진입 시 localStorage에서 선택된 경로 불러오기
+// 컴포넌트가 마운트될 때 기존 입력값 & 선택된 경로 복원
 onMounted(() => {
   const routeData = localStorage.getItem('selectedRoute')
-  localStorage.removeItem('selectedRoute') // 불러온 후 제거
   if (routeData) {
     selectedRoute.value = JSON.parse(routeData)
+    localStorage.removeItem('selectedRoute')
   }
+
+  title.value = localStorage.getItem('tempTitle') || ''
+  content.value = localStorage.getItem('tempContent') || ''
+  region1.value = localStorage.getItem('tempRegion1') || ''
+  region2.value = localStorage.getItem('tempRegion2') || ''
+  localStorage.removeItem('tempTitle')
+  localStorage.removeItem('tempContent')
+  localStorage.removeItem('tempRegion1')
+  localStorage.removeItem('tempRegion2')
 })
 
 const goBack = () => {
@@ -80,50 +92,53 @@ const handleImageUpload = (e) => {
 }
 
 const importRoute = () => {
+  // 입력값을 localStorage에 임시 저장
+  localStorage.setItem('tempTitle', title.value)
+  localStorage.setItem('tempContent', content.value)
+  localStorage.setItem('tempRegion1', region1.value)
+  localStorage.setItem('tempRegion2', region2.value)
+
   router.push('/savedroute')
 }
 
 const submitPost = async () => {
   const nickname = localStorage.getItem('nickname') || '익명'
+
   if (!title.value || !content.value) {
     alert('제목과 내용을 입력해주세요')
     return
   }
 
   const newPost = {
-    route_board_id: Date.now(),
+    routeBoardId: Date.now(),
     title: title.value,
     content: content.value,
-    region1: region1.value,
-    region2: region2.value,
-    created_at: new Date().toISOString(),
-    nickname,
-    view_count: 0,
-    like_count: 0,
-    comment_count: 0,
-    isHot: false,
-    routeInfo: selectedRoute.value,
+    createdAt: new Date().toISOString(),
+    viewCount: 0,
+    likeCount: 0,
+    boardStatus: 0,
+    selfRouteId: selectedRoute.value.selfRouteId,
   }
 
   try {
-    const formData = new FormData()
-    formData.append('title', title.value)
-    formData.append('content', content.value)
-    formData.append('region1', region1.value)
-    formData.append('region2', region2.value)
-    formData.append('nickname', nickname)
-    if (selectedRoute.value) {
-      formData.append('routeInfo', JSON.stringify(selectedRoute.value))
-    }
-    if (imageFile.value) {
-      formData.append('image', imageFile.value)
-    }
+    const data = JSON.stringify(newPost)
 
-    await axios.post('/api/route-board', formData)
+    await axios.post('/api/boards', data, {
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 
     const existingPosts = JSON.parse(localStorage.getItem('posts')) || []
     existingPosts.unshift(newPost)
     localStorage.setItem('posts', JSON.stringify(existingPosts))
+
+    // 입력값 임시 저장 제거
+    localStorage.removeItem('tempTitle')
+    localStorage.removeItem('tempContent')
+    localStorage.removeItem('tempRegion1')
+    localStorage.removeItem('tempRegion2')
 
     alert('글 작성이 완료되었습니다.')
     router.push('/route-board')
@@ -187,6 +202,16 @@ const submitPost = async () => {
   margin-bottom: 10px;
   font-size: 14px;
   background-color: #fff;
+}
+.image-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.image-wrapper img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 .file-upload input {
   flex: 1;

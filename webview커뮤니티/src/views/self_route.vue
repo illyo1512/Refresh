@@ -1,8 +1,10 @@
 <template>
   <div class="self-route-wrapper">
     <!-- 상단 바 -->
-    <button @click="goBack" class="back-btn">←</button>
-    <h2 class="title">즐겨찾기</h2>
+    <div class="header">
+      <button @click="goBack" class="back-btn">←</button>
+      <h2 class="title">즐겨찾기</h2>
+    </div>
 
     <!-- 즐겨찾기한 경로가 없을 경우 -->
     <div v-if="routes.length === 0" class="empty-message">
@@ -14,7 +16,7 @@
       <div
         v-for="route in routes"
         :key="route.selfRouteId"
-        class="route-card safe"
+        class="route-card"
       >
         <!-- 경로 요약 정보 -->
         <div class="route-summary">
@@ -45,21 +47,18 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
-const routes = ref([]) // 즐겨찾기된 경로 목록
+const routes = ref([])
 const router = useRouter()
 
-// ← 버튼으로 뒤로가기
 function goBack() {
   router.back()
 }
 
-// 날짜 포맷 함수 (YYYY.MM.DD)
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
 }
 
-// 즐겨찾기 삭제 함수
 function deleteRoute(id) {
   if (!confirm("이 경로를 삭제하시겠습니까?")) return
 
@@ -70,7 +69,6 @@ function deleteRoute(id) {
     .catch(err => console.error("삭제 실패:", err))
 }
 
-// 경로 확인 (localStorage에 저장 후 route로 이동)
 function goToRoute(route) {
   try {
     localStorage.setItem('reRouteResult', JSON.stringify(route.routeResult))
@@ -80,12 +78,10 @@ function goToRoute(route) {
   }
 }
 
-// 경로 수정 (기능 구현 예정)
 function editRoute(route) {
   alert(`경로 수정 예정: ${route.routeName}`)
 }
 
-// 경유지 개수 반환
 function getWaypointCount(route) {
   try {
     const result = typeof route.routeResult === 'string' ? JSON.parse(route.routeResult) : route.routeResult
@@ -95,43 +91,49 @@ function getWaypointCount(route) {
   }
 }
 
-// 이동수단 텍스트 반환
-// function getTransportMode(route) {
-//   try {
-//     const result = typeof route.routeResult === 'string' ? JSON.parse(route.routeResult) : route.routeResult
-//     return result.transportModeDescription || '이동수단 미지정'
-//   } catch {
-//     return '이동수단 미지정'
-//   }
-// }
+function getTransportMode(route) {
+  try {
+    const result = typeof route.routeResult === 'string' ? JSON.parse(route.routeResult) : route.routeResult
+    return result.transportModeDescription || '이동수단 미지정'
+  } catch {
+    return '이동수단 미지정'
+  }
+}
 
-// 즐겨찾기 목록 불러오기
 async function fetchRoutes() {
   try {
-    const userId = localStorage.getItem("userId") || 1 // 기본값 1 (로그인 연결 예정)
+    const userId = localStorage.getItem("userId") || 1
     const res = await axios.get(`/api/self-routes/user/${userId}`)
-
-    // routeResult가 JSON 문자열일 경우 파싱
     routes.value = res.data.map(item => ({
       ...item,
       routeResult: typeof item.routeResult === 'string'
         ? JSON.parse(item.routeResult)
         : item.routeResult
     }))
-
     console.log("💾 불러온 데이터:", routes.value)
   } catch (err) {
     console.error("불러오기 실패:", err)
   }
 }
 
-// 페이지 진입 시 호출
 onMounted(() => {
   fetchRoutes()
 })
 </script>
 
 <style scoped>
+.self-route-wrapper {
+  padding: 20px;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
 .back-btn {
   background: none;
   border: none;
@@ -139,16 +141,17 @@ onMounted(() => {
   cursor: pointer;
   margin-right: 12px;
 }
-.self-route-wrapper {
-  padding: 20px;
-  background-color: #ffffff;
-  min-height: 100vh;
-}
 
 .title {
   font-size: 22px;
   font-weight: bold;
-  margin-bottom: 20px;
+}
+
+.empty-message {
+  text-align: center;
+  color: gray;
+  font-size: 16px;
+  margin-top: 40px;
 }
 
 .route-list {
@@ -157,7 +160,7 @@ onMounted(() => {
   gap: 20px;
 }
 
-.route-card.safe {
+.route-card {
   background-color: #ffffff;
   border: 2px solid #bbbbbb;
   border-radius: 12px;
